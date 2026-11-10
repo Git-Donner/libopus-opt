@@ -1,0 +1,30 @@
+{
+  "meta": {
+    "name": "encode-bench",
+    "version": "1.0",
+    "description": "编码专项：仅 opus_encode 链路（不测量 decode）。覆盖 CELT/SILK/DNN 三模块。"
+  },
+  "test_cases": [
+    {
+      "name": "enc-celt-mono-20ms-64k",
+      "module": "celt", "operation": "encode_only",
+      "channels": 1, "application": "RESTRICTED_CELT",
+      "frame_size": 960, "bitrate": 64000, "complexity": 10,
+      "iterations": 5000, "warmup": 50
+    },
+    {
+      "name": "enc-silk-mono-20ms-16k",
+      "module": "silk", "operation": "encode_only",
+      "channels": 1, "application": "RESTRICTED_SILK",
+      "frame_size": 960, "bitrate": 16000, "complexity": 10,
+      "iterations": 5000, "warmup": 50
+    },
+    {
+      "name": "enc-dnn-audio-mono-20ms-64k",
+      "module": "dnn", "operation": "encode_only",
+      "channels": 1, "application": "AUDIO",
+      "frame_size": 960, "bitrate": 64000, "complexity": 10,
+      "iterations": 5000, "warmup": 50
+    }
+  ]
+}

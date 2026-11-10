@@ -1,0 +1,91 @@
+{
+  "meta": {
+    "name": "module-coverage",
+    "version": "1.0",
+    "description": "三模块(CELT/SILK/DNN)全覆盖测试。每个用例声明 module 属性，运行时通过 OPUS 包 TOC 解析校验实际命中模块。"
+  },
+  "test_cases": [
+    {
+      "name": "celt-mono-20ms-64k",
+      "description": "CELT 纯模式：RESTRICTED_CELT 强制 MODE_CELT_ONLY",
+      "module": "celt",
+      "operation": "encode_decode",
+      "channels": 1, "application": "RESTRICTED_CELT",
+      "frame_size": 960, "bitrate": 64000, "complexity": 10,
+      "iterations": 3000, "warmup": 50
+    },
+    {
+      "name": "celt-stereo-20ms-128k",
+      "description": "CELT 纯模式：立体声高码率",
+      "module": "celt",
+      "operation": "encode_decode",
+      "channels": 2, "application": "RESTRICTED_CELT",
+      "frame_size": 960, "bitrate": 128000, "complexity": 10,
+      "iterations": 3000, "warmup": 50
+    },
+    {
+      "name": "celt-mono-10ms-96k",
+      "description": "CELT 纯模式：10ms 短帧（<10ms 亦强制 CELT）",
+      "module": "celt",
+      "operation": "encode_decode",
+      "channels": 1, "application": "RESTRICTED_CELT",
+      "frame_size": 480, "bitrate": 96000, "complexity": 10,
+      "iterations": 3000, "warmup": 50
+    },
+    {
+      "name": "silk-mono-20ms-16k",
+      "description": "SILK 纯模式：RESTRICTED_SILK 强制 MODE_SILK_ONLY（跳过 DNN 分析）",
+      "module": "silk",
+      "operation": "encode_decode",
+      "channels": 1, "application": "RESTRICTED_SILK",
+      "frame_size": 960, "bitrate": 16000, "complexity": 10,
+      "iterations": 3000, "warmup": 50
+    },
+    {
+      "name": "silk-stereo-40ms-24k",
+      "description": "SILK 纯模式：40ms 长帧",
+      "module": "silk",
+      "operation": "encode_decode",
+      "channels": 2, "application": "RESTRICTED_SILK",
+      "frame_size": 1920, "bitrate": 24000, "complexity": 10,
+      "iterations": 2000, "warmup": 50
+    },
+    {
+      "name": "silk-mono-10ms-12k",
+      "description": "SILK 纯模式：10ms 低码率",
+      "module": "silk",
+      "operation": "encode_decode",
+      "channels": 1, "application": "RESTRICTED_SILK",
+      "frame_size": 480, "bitrate": 12000, "complexity": 10,
+      "iterations": 3000, "warmup": 50
+    },
+    {
+      "name": "dnn-audio-mono-20ms-64k",
+      "description": "DNN 分析路径：AUDIO+complexity10+48k → run_analysis 激活 mlp.c DNN",
+      "module": "dnn",
+      "operation": "encode_decode",
+      "channels": 1, "application": "AUDIO",
+      "frame_size": 960, "bitrate": 64000, "complexity": 10,
+      "iterations": 3000, "warmup": 50
+    },
+    {
+      "name": "dnn-audio-stereo-10ms-128k",
+      "description": "DNN 分析路径：立体声短帧高码率",
+      "module": "dnn",
+      "operation": "encode_decode",
+      "channels": 2, "application": "AUDIO",
+      "frame_size": 480, "bitrate": 128000, "complexity": 10,
+      "iterations": 3000, "warmup": 50
+    },
+    {
+      "name": "dnn-voip-mono-20ms-24k-fec-loss20",
+      "description": "DNN 分析 + FEC + 丢包：VOIP 触发分析 DNN 与 SILK FEC/LBRR 路径",
+      "module": "dnn",
+      "operation": "encode_decode",
+      "channels": 1, "application": "VOIP",
+      "frame_size": 960, "bitrate": 24000, "complexity": 10,
+      "use_fec": 1, "loss_perc": 20,
+      "iterations": 3000, "warmup": 50
+    }
+  ]
+}

@@ -1,0 +1,31 @@
+{
+  "meta": {
+    "name": "decode-bench",
+    "version": "1.0",
+    "description": "解码专项：编码产物本地生成后连续解码，测量 opus_decode 吞吐。"
+  },
+  "test_cases": [
+    {
+      "name": "dec-celt-mono-20ms-64k",
+      "module": "celt", "operation": "encode_decode",
+      "channels": 1, "application": "RESTRICTED_CELT",
+      "frame_size": 960, "bitrate": 64000, "complexity": 10,
+      "iterations": 5000, "warmup": 50
+    },
+    {
+      "name": "dec-silk-mono-20ms-16k",
+      "module": "silk", "operation": "encode_decode",
+      "channels": 1, "application": "RESTRICTED_SILK",
+      "frame_size": 960, "bitrate": 16000, "complexity": 10,
+      "iterations": 5000, "warmup": 50
+    },
+    {
+      "name": "dec-dnn-voip-mono-20ms-24k-fec",
+      "module": "dnn", "operation": "encode_decode",
+      "channels": 1, "application": "VOIP",
+      "frame_size": 960, "bitrate": 24000, "complexity": 10,
+      "use_fec": 1, "loss_perc": 20,
+      "iterations": 5000, "warmup": 50
+    }
+  ]
+}

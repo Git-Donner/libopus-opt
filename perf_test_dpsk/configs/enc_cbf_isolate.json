@@ -1,0 +1,14 @@
+{
+  "meta": {
+    "name": "encode-cbf-isolate",
+    "version": "1.0",
+    "description": "编码阶段 comb_filter 隔离: 仅 encode 链路, CELT+SILK 各一档, 块模式摊销单帧调用开销。"
+  },
+  "test_cases": [
+    {"name":"e-celt-20ms-64k-c10","module":"celt","operation":"encode_only","channels":1,"application":"RESTRICTED_CELT","frame_size":960,"bitrate":64000,"complexity":10,"chunk_frames":1000,"iterations":30,"warmup":3},
+    {"name":"e-celt-10ms-48k-c10","module":"celt","operation":"encode_only","channels":1,"application":"RESTRICTED_CELT","frame_size":480,"bitrate":48000,"complexity":10,"chunk_frames":1000,"iterations":30,"warmup":3},
+    {"name":"e-celt-stereo-20ms-96k-c10","module":"celt","operation":"encode_only","channels":2,"application":"RESTRICTED_CELT","frame_size":960,"bitrate":96000,"complexity":10,"chunk_frames":1000,"iterations":30,"warmup":3},
+    {"name":"e-silk-20ms-24k-c5","module":"silk","operation":"encode_only","channels":1,"application":"RESTRICTED_SILK","frame_size":960,"bitrate":24000,"complexity":5,"chunk_frames":1000,"iterations":30,"warmup":3},
+    {"name":"e-silk-10ms-16k-c3","module":"silk","operation":"encode_only","channels":1,"application":"RESTRICTED_SILK","frame_size":480,"bitrate":16000,"complexity":3,"chunk_frames":1000,"iterations":30,"warmup":3}
+  ]
+}

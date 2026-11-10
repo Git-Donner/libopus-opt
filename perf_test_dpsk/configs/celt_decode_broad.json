@@ -1,0 +1,18 @@
+{
+  "meta": {"name":"celt-decode-broad","version":"1.0","description":"CELT decode-only across rates/frames/channels"},
+  "test_cases": [
+    {"name":"celt-dec-10ms-32k","module":"celt","operation":"decode_only","channels":1,"application":"RESTRICTED_CELT","frame_size":480,"bitrate":32000,"complexity":10,"iterations":50000,"warmup":100},
+    {"name":"celt-dec-10ms-48k","module":"celt","operation":"decode_only","channels":1,"application":"RESTRICTED_CELT","frame_size":480,"bitrate":48000,"complexity":10,"iterations":50000,"warmup":100},
+    {"name":"celt-dec-10ms-64k","module":"celt","operation":"decode_only","channels":1,"application":"RESTRICTED_CELT","frame_size":480,"bitrate":64000,"complexity":10,"iterations":50000,"warmup":100},
+    {"name":"celt-dec-10ms-96k","module":"celt","operation":"decode_only","channels":1,"application":"RESTRICTED_CELT","frame_size":480,"bitrate":96000,"complexity":10,"iterations":50000,"warmup":100},
+    {"name":"celt-dec-10ms-128k","module":"celt","operation":"decode_only","channels":1,"application":"RESTRICTED_CELT","frame_size":480,"bitrate":128000,"complexity":10,"iterations":50000,"warmup":100},
+    {"name":"celt-dec-20ms-32k","module":"celt","operation":"decode_only","channels":1,"application":"RESTRICTED_CELT","frame_size":960,"bitrate":32000,"complexity":10,"iterations":50000,"warmup":100},
+    {"name":"celt-dec-20ms-48k","module":"celt","operation":"decode_only","channels":1,"application":"RESTRICTED_CELT","frame_size":960,"bitrate":48000,"complexity":10,"iterations":50000,"warmup":100},
+    {"name":"celt-dec-20ms-64k","module":"celt","operation":"decode_only","channels":1,"application":"RESTRICTED_CELT","frame_size":960,"bitrate":64000,"complexity":10,"iterations":50000,"warmup":100},
+    {"name":"celt-dec-20ms-96k","module":"celt","operation":"decode_only","channels":1,"application":"RESTRICTED_CELT","frame_size":960,"bitrate":96000,"complexity":10,"iterations":50000,"warmup":100},
+    {"name":"celt-dec-20ms-128k","module":"celt","operation":"decode_only","channels":1,"application":"RESTRICTED_CELT","frame_size":960,"bitrate":128000,"complexity":10,"iterations":50000,"warmup":100},
+    {"name":"celt-dec-10ms-32k-stereo","module":"celt","operation":"decode_only","channels":2,"application":"RESTRICTED_CELT","frame_size":480,"bitrate":32000,"complexity":10,"iterations":50000,"warmup":100},
+    {"name":"celt-dec-20ms-32k-stereo","module":"celt","operation":"decode_only","channels":2,"application":"RESTRICTED_CELT","frame_size":960,"bitrate":32000,"complexity":10,"iterations":50000,"warmup":100},
+    {"name":"celt-dec-20ms-64k-stereo","module":"celt","operation":"decode_only","channels":2,"application":"RESTRICTED_CELT","frame_size":960,"bitrate":64000,"complexity":10,"iterations":50000,"warmup":100}
+  ]
+}

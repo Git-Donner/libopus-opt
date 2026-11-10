@@ -1,0 +1,54 @@
+{
+  "meta": {
+    "name": "full-pipeline",
+    "version": "1.0",
+    "description": "通用编解码全链路基准（自动路由模式，覆盖多样参数）。"
+  },
+  "test_cases": [
+    {
+      "name": "auto-mono-audio-20ms-64k",
+      "description": "自动路由：AUDIO+64k 通常选 CELT",
+      "module": "auto",
+      "operation": "encode_decode",
+      "channels": 1, "application": "AUDIO",
+      "frame_size": 960, "bitrate": 64000, "complexity": -1000,
+      "iterations": 3000, "warmup": 50
+    },
+    {
+      "name": "auto-stereo-audio-20ms-128k",
+      "description": "自动路由：AUDIO+128k 选 CELT",
+      "module": "auto",
+      "operation": "encode_decode",
+      "channels": 2, "application": "AUDIO",
+      "frame_size": 960, "bitrate": 128000, "complexity": -1000,
+      "iterations": 3000, "warmup": 50
+    },
+    {
+      "name": "auto-mono-voip-20ms-24k",
+      "description": "自动路由：VOIP+24k 选 SILK",
+      "module": "auto",
+      "operation": "encode_decode",
+      "channels": 1, "application": "VOIP",
+      "frame_size": 960, "bitrate": 24000, "complexity": -1000,
+      "iterations": 3000, "warmup": 50
+    },
+    {
+      "name": "auto-mono-voip-20ms-8k",
+      "description": "自动路由：VOIP+8k 低码率选 SILK",
+      "module": "auto",
+      "operation": "encode_decode",
+      "channels": 1, "application": "VOIP",
+      "frame_size": 960, "bitrate": 8000, "complexity": -1000,
+      "iterations": 3000, "warmup": 50
+    },
+    {
+      "name": "auto-mono-audio-60ms-256k",
+      "description": "自动路由：60ms 高码率",
+      "module": "auto",
+      "operation": "encode_decode",
+      "channels": 1, "application": "AUDIO",
+      "frame_size": 2880, "bitrate": 256000, "complexity": -1000,
+      "iterations": 2000, "warmup": 50
+    }
+  ]
+}

@@ -1,0 +1,19 @@
+{
+  "meta": {
+    "name": "hybrid-eval",
+    "version": "1.0",
+    "description": "HYBRID 模式测试：VOIP/音频 + 强制 SWB/FB 带宽 + 中低码率，压出 SILK+CELT 混合。验证 encode/decode 是否到 10%。"
+  },
+  "test_cases": [
+    {"name":"hy-voip-mono-20ms-8k-swb","module":"hybrid","operation":"encode_decode","channels":1,"application":"VOIP","bandwidth":"SUPERWIDEBAND","frame_size":960,"bitrate":8000,"complexity":5,"iterations":2000,"warmup":80},
+    {"name":"hy-voip-mono-20ms-16k-swb","module":"hybrid","operation":"encode_decode","channels":1,"application":"VOIP","bandwidth":"SUPERWIDEBAND","frame_size":960,"bitrate":16000,"complexity":5,"iterations":2000,"warmup":80},
+    {"name":"hy-voip-mono-20ms-24k-swb","module":"hybrid","operation":"encode_decode","channels":1,"application":"VOIP","bandwidth":"SUPERWIDEBAND","frame_size":960,"bitrate":24000,"complexity":5,"iterations":2000,"warmup":80},
+    {"name":"hy-voip-mono-20ms-32k-swb","module":"hybrid","operation":"encode_decode","channels":1,"application":"VOIP","bandwidth":"SUPERWIDEBAND","frame_size":960,"bitrate":32000,"complexity":5,"iterations":2000,"warmup":80},
+    {"name":"hy-voip-mono-20ms-24k-fb","module":"hybrid","operation":"encode_decode","channels":1,"application":"VOIP","bandwidth":"FULLBAND","frame_size":960,"bitrate":24000,"complexity":5,"iterations":2000,"warmup":80},
+    {"name":"hy-voip-mono-20ms-16k-fb","module":"hybrid","operation":"encode_decode","channels":1,"application":"VOIP","bandwidth":"FULLBAND","frame_size":960,"bitrate":16000,"complexity":5,"iterations":2000,"warmup":80},
+    {"name":"hy-voip-mono-10ms-24k-swb","module":"hybrid","operation":"encode_decode","channels":1,"application":"VOIP","bandwidth":"SUPERWIDEBAND","frame_size":480,"bitrate":24000,"complexity":5,"iterations":2000,"warmup":80},
+    {"name":"hy-voip-stereo-20ms-32k-swb","module":"hybrid","operation":"encode_decode","channels":2,"application":"VOIP","bandwidth":"SUPERWIDEBAND","frame_size":960,"bitrate":32000,"complexity":5,"iterations":2000,"warmup":80},
+    {"name":"hy-audio-mono-20ms-24k-swb","module":"hybrid","operation":"encode_decode","channels":1,"application":"AUDIO","bandwidth":"SUPERWIDEBAND","frame_size":960,"bitrate":24000,"complexity":5,"iterations":2000,"warmup":80},
+    {"name":"hy-audio-mono-20ms-32k-fb","module":"hybrid","operation":"encode_decode","channels":1,"application":"AUDIO","bandwidth":"FULLBAND","frame_size":960,"bitrate":32000,"complexity":5,"iterations":2000,"warmup":80}
+  ]
+}

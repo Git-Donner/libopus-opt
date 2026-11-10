@@ -1,0 +1,26 @@
+{
+  "meta": {
+    "name": "explore-silk-win",
+    "version": "1.0",
+    "description": "聚焦 SILK 短帧低复杂度低码率，确认 >=10% 提速条件（定点+SVE2 SILK 优势区）。"
+  },
+  "test_cases": [
+    {"name":"sw-silk-mono-5ms-8k-c3","module":"silk","operation":"encode_only","channels":1,"application":"RESTRICTED_SILK","frame_size":240,"bitrate":8000,"complexity":3,"iterations":2000,"warmup":50},
+    {"name":"sw-silk-mono-5ms-8k-c5","module":"silk","operation":"encode_only","channels":1,"application":"RESTRICTED_SILK","frame_size":240,"bitrate":8000,"complexity":5,"iterations":2000,"warmup":50},
+    {"name":"sw-silk-mono-5ms-16k-c5","module":"silk","operation":"encode_only","channels":1,"application":"RESTRICTED_SILK","frame_size":240,"bitrate":16000,"complexity":5,"iterations":2000,"warmup":50},
+    {"name":"sw-silk-mono-10ms-8k-c3","module":"silk","operation":"encode_only","channels":1,"application":"RESTRICTED_SILK","frame_size":480,"bitrate":8000,"complexity":3,"iterations":2000,"warmup":50},
+    {"name":"sw-silk-mono-10ms-8k-c4","module":"silk","operation":"encode_only","channels":1,"application":"RESTRICTED_SILK","frame_size":480,"bitrate":8000,"complexity":4,"iterations":2000,"warmup":50},
+    {"name":"sw-silk-mono-10ms-8k-c5","module":"silk","operation":"encode_only","channels":1,"application":"RESTRICTED_SILK","frame_size":480,"bitrate":8000,"complexity":5,"iterations":2000,"warmup":50},
+    {"name":"sw-silk-mono-10ms-12k-c5","module":"silk","operation":"encode_only","channels":1,"application":"RESTRICTED_SILK","frame_size":480,"bitrate":12000,"complexity":5,"iterations":2000,"warmup":50},
+    {"name":"sw-silk-mono-10ms-16k-c5","module":"silk","operation":"encode_only","channels":1,"application":"RESTRICTED_SILK","frame_size":480,"bitrate":16000,"complexity":5,"iterations":2000,"warmup":50},
+    {"name":"sw-silk-mono-10ms-20k-c5","module":"silk","operation":"encode_only","channels":1,"application":"RESTRICTED_SILK","frame_size":480,"bitrate":20000,"complexity":5,"iterations":2000,"warmup":50},
+    {"name":"sw-silk-mono-10ms-24k-c5","module":"silk","operation":"encode_only","channels":1,"application":"RESTRICTED_SILK","frame_size":480,"bitrate":24000,"complexity":5,"iterations":2000,"warmup":50},
+    {"name":"sw-silk-mono-10ms-32k-c5","module":"silk","operation":"encode_only","channels":1,"application":"RESTRICTED_SILK","frame_size":480,"bitrate":32000,"complexity":5,"iterations":2000,"warmup":50},
+    {"name":"sw-silk-mono-20ms-8k-c3","module":"silk","operation":"encode_only","channels":1,"application":"RESTRICTED_SILK","frame_size":960,"bitrate":8000,"complexity":3,"iterations":2000,"warmup":50},
+    {"name":"sw-silk-mono-20ms-8k-c5","module":"silk","operation":"encode_only","channels":1,"application":"RESTRICTED_SILK","frame_size":960,"bitrate":8000,"complexity":5,"iterations":2000,"warmup":50},
+    {"name":"sw-silk-stereo-10ms-24k-c5","module":"silk","operation":"encode_only","channels":2,"application":"RESTRICTED_SILK","frame_size":480,"bitrate":24000,"complexity":5,"iterations":2000,"warmup":50},
+    {"name":"sw-silk-rt-10ms-8k-c5","module":"silk","operation":"encode_decode","channels":1,"application":"RESTRICTED_SILK","frame_size":480,"bitrate":8000,"complexity":5,"iterations":2000,"warmup":50},
+    {"name":"sw-silk-rt-10ms-16k-c5","module":"silk","operation":"encode_decode","channels":1,"application":"RESTRICTED_SILK","frame_size":480,"bitrate":16000,"complexity":5,"iterations":2000,"warmup":50},
+    {"name":"sw-silk-rt-20ms-16k-c5","module":"silk","operation":"encode_decode","channels":1,"application":"RESTRICTED_SILK","frame_size":960,"bitrate":16000,"complexity":5,"iterations":2000,"warmup":50}
+  ]
+}

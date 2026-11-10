@@ -1,0 +1,43 @@
+{
+  "meta": {
+    "name": "explore-matrix",
+    "version": "1.0",
+    "description": "宽矩阵探索：重点覆盖 SILK 编码（SVE2 LPC 优化潜在收益），兼 CELT/DNN/AUTO/解码，找 zhujing vs Source >=10% 提速条件。"
+  },
+  "test_cases": [
+    {"name":"silk-e-mono-10ms-8k-c5","module":"silk","operation":"encode_only","channels":1,"application":"RESTRICTED_SILK","frame_size":480,"bitrate":8000,"complexity":5,"iterations":800,"warmup":30},
+    {"name":"silk-e-mono-10ms-8k-c10","module":"silk","operation":"encode_only","channels":1,"application":"RESTRICTED_SILK","frame_size":480,"bitrate":8000,"complexity":10,"iterations":800,"warmup":30},
+    {"name":"silk-e-mono-10ms-16k-c5","module":"silk","operation":"encode_only","channels":1,"application":"RESTRICTED_SILK","frame_size":480,"bitrate":16000,"complexity":5,"iterations":800,"warmup":30},
+    {"name":"silk-e-mono-10ms-16k-c10","module":"silk","operation":"encode_only","channels":1,"application":"RESTRICTED_SILK","frame_size":480,"bitrate":16000,"complexity":10,"iterations":800,"warmup":30},
+    {"name":"silk-e-mono-10ms-24k-c5","module":"silk","operation":"encode_only","channels":1,"application":"RESTRICTED_SILK","frame_size":480,"bitrate":24000,"complexity":5,"iterations":800,"warmup":30},
+    {"name":"silk-e-mono-10ms-24k-c10","module":"silk","operation":"encode_only","channels":1,"application":"RESTRICTED_SILK","frame_size":480,"bitrate":24000,"complexity":10,"iterations":800,"warmup":30},
+    {"name":"silk-e-mono-10ms-32k-c10","module":"silk","operation":"encode_only","channels":1,"application":"RESTRICTED_SILK","frame_size":480,"bitrate":32000,"complexity":10,"iterations":800,"warmup":30},
+    {"name":"silk-e-mono-20ms-8k-c5","module":"silk","operation":"encode_only","channels":1,"application":"RESTRICTED_SILK","frame_size":960,"bitrate":8000,"complexity":5,"iterations":800,"warmup":30},
+    {"name":"silk-e-mono-20ms-8k-c10","module":"silk","operation":"encode_only","channels":1,"application":"RESTRICTED_SILK","frame_size":960,"bitrate":8000,"complexity":10,"iterations":800,"warmup":30},
+    {"name":"silk-e-mono-20ms-12k-c5","module":"silk","operation":"encode_only","channels":1,"application":"RESTRICTED_SILK","frame_size":960,"bitrate":12000,"complexity":5,"iterations":800,"warmup":30},
+    {"name":"silk-e-mono-20ms-12k-c10","module":"silk","operation":"encode_only","channels":1,"application":"RESTRICTED_SILK","frame_size":960,"bitrate":12000,"complexity":10,"iterations":800,"warmup":30},
+    {"name":"silk-e-mono-20ms-16k-c5","module":"silk","operation":"encode_only","channels":1,"application":"RESTRICTED_SILK","frame_size":960,"bitrate":16000,"complexity":5,"iterations":800,"warmup":30},
+    {"name":"silk-e-mono-20ms-16k-c10","module":"silk","operation":"encode_only","channels":1,"application":"RESTRICTED_SILK","frame_size":960,"bitrate":16000,"complexity":10,"iterations":800,"warmup":30},
+    {"name":"silk-e-mono-20ms-24k-c5","module":"silk","operation":"encode_only","channels":1,"application":"RESTRICTED_SILK","frame_size":960,"bitrate":24000,"complexity":5,"iterations":800,"warmup":30},
+    {"name":"silk-e-mono-20ms-24k-c10","module":"silk","operation":"encode_only","channels":1,"application":"RESTRICTED_SILK","frame_size":960,"bitrate":24000,"complexity":10,"iterations":800,"warmup":30},
+    {"name":"silk-e-mono-20ms-32k-c10","module":"silk","operation":"encode_only","channels":1,"application":"RESTRICTED_SILK","frame_size":960,"bitrate":32000,"complexity":10,"iterations":800,"warmup":30},
+    {"name":"silk-e-mono-40ms-12k-c10","module":"silk","operation":"encode_only","channels":1,"application":"RESTRICTED_SILK","frame_size":1920,"bitrate":12000,"complexity":10,"iterations":800,"warmup":30},
+    {"name":"silk-e-mono-40ms-24k-c10","module":"silk","operation":"encode_only","channels":1,"application":"RESTRICTED_SILK","frame_size":1920,"bitrate":24000,"complexity":10,"iterations":800,"warmup":30},
+    {"name":"silk-e-stereo-20ms-24k-c10","module":"silk","operation":"encode_only","channels":2,"application":"RESTRICTED_SILK","frame_size":960,"bitrate":24000,"complexity":10,"iterations":800,"warmup":30},
+    {"name":"silk-e-stereo-20ms-40k-c10","module":"silk","operation":"encode_only","channels":2,"application":"RESTRICTED_SILK","frame_size":960,"bitrate":40000,"complexity":10,"iterations":800,"warmup":30},
+    {"name":"silk-rt-mono-20ms-16k-c10","module":"silk","operation":"encode_decode","channels":1,"application":"RESTRICTED_SILK","frame_size":960,"bitrate":16000,"complexity":10,"iterations":800,"warmup":30},
+    {"name":"silk-rt-mono-20ms-24k-c10","module":"silk","operation":"encode_decode","channels":1,"application":"RESTRICTED_SILK","frame_size":960,"bitrate":24000,"complexity":10,"iterations":800,"warmup":30},
+    {"name":"silk-rt-mono-10ms-16k-c10","module":"silk","operation":"encode_decode","channels":1,"application":"RESTRICTED_SILK","frame_size":480,"bitrate":16000,"complexity":10,"iterations":800,"warmup":30},
+    {"name":"celt-e-mono-20ms-32k-c10","module":"celt","operation":"encode_only","channels":1,"application":"RESTRICTED_CELT","frame_size":960,"bitrate":32000,"complexity":10,"iterations":800,"warmup":30},
+    {"name":"celt-e-mono-20ms-64k-c10","module":"celt","operation":"encode_only","channels":1,"application":"RESTRICTED_CELT","frame_size":960,"bitrate":64000,"complexity":10,"iterations":800,"warmup":30},
+    {"name":"celt-e-mono-20ms-128k-c10","module":"celt","operation":"encode_only","channels":1,"application":"RESTRICTED_CELT","frame_size":960,"bitrate":128000,"complexity":10,"iterations":800,"warmup":30},
+    {"name":"celt-e-mono-10ms-64k-c10","module":"celt","operation":"encode_only","channels":1,"application":"RESTRICTED_CELT","frame_size":480,"bitrate":64000,"complexity":10,"iterations":800,"warmup":30},
+    {"name":"celt-e-stereo-20ms-128k-c10","module":"celt","operation":"encode_only","channels":2,"application":"RESTRICTED_CELT","frame_size":960,"bitrate":128000,"complexity":10,"iterations":800,"warmup":30},
+    {"name":"auto-e-mono-voip-20ms-24k","module":"auto","operation":"encode_only","channels":1,"application":"VOIP","frame_size":960,"bitrate":24000,"complexity":10,"iterations":800,"warmup":30},
+    {"name":"auto-e-mono-voip-20ms-12k","module":"auto","operation":"encode_only","channels":1,"application":"VOIP","frame_size":960,"bitrate":12000,"complexity":10,"iterations":800,"warmup":30},
+    {"name":"auto-e-mono-audio-20ms-64k","module":"auto","operation":"encode_only","channels":1,"application":"AUDIO","frame_size":960,"bitrate":64000,"complexity":10,"iterations":800,"warmup":30},
+    {"name":"dnn-e-voip-mono-20ms-24k-fec","module":"dnn","operation":"encode_only","channels":1,"application":"VOIP","frame_size":960,"bitrate":24000,"complexity":10,"use_fec":1,"loss_perc":20,"iterations":800,"warmup":30},
+    {"name":"dnn-e-audio-mono-20ms-64k","module":"dnn","operation":"encode_only","channels":1,"application":"AUDIO","frame_size":960,"bitrate":64000,"complexity":10,"iterations":800,"warmup":30},
+    {"name":"dnn-e-audio-stereo-10ms-128k","module":"dnn","operation":"encode_only","channels":2,"application":"AUDIO","frame_size":480,"bitrate":128000,"complexity":10,"iterations":800,"warmup":30}
+  ]
+}

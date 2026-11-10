@@ -1,0 +1,7 @@
+{
+  "meta": {"name":"celt-enc","version":"1.0","description":"CELT 编码场景"},
+  "test_cases": [
+    {"name":"celt-enc-20ms-64k","module":"celt","operation":"encode_only","channels":1,"application":"RESTRICTED_CELT","frame_size":960,"bitrate":64000,"complexity":10,"iterations":3000,"warmup":100},
+    {"name":"celt-enc-10ms-32k","module":"celt","operation":"encode_only","channels":1,"application":"RESTRICTED_CELT","frame_size":480,"bitrate":32000,"complexity":10,"iterations":3000,"warmup":100}
+  ]
+}
