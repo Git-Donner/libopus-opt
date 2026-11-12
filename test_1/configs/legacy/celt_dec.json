@@ -1,0 +1,7 @@
+{
+  "meta": {"name":"celt-dec","version":"1.0","description":"CELT 解码场景(roundtrip, 测 decode_us)"},
+  "test_cases": [
+    {"name":"celt-dec-20ms-64k","module":"celt","operation":"encode_decode","channels":1,"application":"RESTRICTED_CELT","frame_size":960,"bitrate":64000,"complexity":10,"iterations":3000,"warmup":100},
+    {"name":"celt-dec-10ms-48k","module":"celt","operation":"encode_decode","channels":1,"application":"RESTRICTED_CELT","frame_size":480,"bitrate":48000,"complexity":10,"iterations":3000,"warmup":100}
+  ]
+}

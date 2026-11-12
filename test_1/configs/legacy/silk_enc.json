@@ -1,0 +1,7 @@
+{
+  "meta": {"name":"silk-enc","version":"1.0","description":"SILK 编码场景"},
+  "test_cases": [
+    {"name":"silk-enc-10ms-8k-c3","module":"silk","operation":"encode_only","channels":1,"application":"RESTRICTED_SILK","frame_size":480,"bitrate":8000,"complexity":3,"iterations":3000,"warmup":100},
+    {"name":"silk-enc-20ms-16k-c5","module":"silk","operation":"encode_only","channels":1,"application":"RESTRICTED_SILK","frame_size":960,"bitrate":16000,"complexity":5,"iterations":3000,"warmup":100}
+  ]
+}

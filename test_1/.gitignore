@@ -1,0 +1,5 @@
+/build/
+/opus_perf_bench
+/output/
+/fixtures/
+__pycache__/

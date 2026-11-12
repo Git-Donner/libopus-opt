@@ -1,0 +1,17 @@
+{
+  "meta": {
+    "name": "confirm-silk-c3",
+    "version": "1.0",
+    "description": "高迭代确认 SILK 复杂度0-3 的提速，验证 >=10% 达成。"
+  },
+  "test_cases": [
+    {"name":"cf-silk-mono-10ms-8k-c0","module":"silk","operation":"encode_only","channels":1,"application":"RESTRICTED_SILK","frame_size":480,"bitrate":8000,"complexity":0,"iterations":4000,"warmup":100},
+    {"name":"cf-silk-mono-10ms-8k-c1","module":"silk","operation":"encode_only","channels":1,"application":"RESTRICTED_SILK","frame_size":480,"bitrate":8000,"complexity":1,"iterations":4000,"warmup":100},
+    {"name":"cf-silk-mono-10ms-8k-c2","module":"silk","operation":"encode_only","channels":1,"application":"RESTRICTED_SILK","frame_size":480,"bitrate":8000,"complexity":2,"iterations":4000,"warmup":100},
+    {"name":"cf-silk-mono-10ms-8k-c3","module":"silk","operation":"encode_only","channels":1,"application":"RESTRICTED_SILK","frame_size":480,"bitrate":8000,"complexity":3,"iterations":4000,"warmup":100},
+    {"name":"cf-silk-mono-20ms-8k-c3","module":"silk","operation":"encode_only","channels":1,"application":"RESTRICTED_SILK","frame_size":960,"bitrate":8000,"complexity":3,"iterations":4000,"warmup":100},
+    {"name":"cf-silk-mono-20ms-12k-c3","module":"silk","operation":"encode_only","channels":1,"application":"RESTRICTED_SILK","frame_size":960,"bitrate":12000,"complexity":3,"iterations":4000,"warmup":100},
+    {"name":"cf-silk-rt-mono-10ms-8k-c3","module":"silk","operation":"encode_decode","channels":1,"application":"RESTRICTED_SILK","frame_size":480,"bitrate":8000,"complexity":3,"iterations":4000,"warmup":100},
+    {"name":"cf-silk-rt-mono-20ms-8k-c3","module":"silk","operation":"encode_decode","channels":1,"application":"RESTRICTED_SILK","frame_size":960,"bitrate":8000,"complexity":3,"iterations":4000,"warmup":100}
+  ]
+}

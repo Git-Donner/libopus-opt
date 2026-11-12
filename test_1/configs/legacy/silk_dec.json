@@ -1,0 +1,7 @@
+{
+  "meta": {"name":"silk-dec","version":"1.0","description":"SILK 解码场景(roundtrip, 测 decode_us)"},
+  "test_cases": [
+    {"name":"silk-dec-10ms-8k-c3","module":"silk","operation":"encode_decode","channels":1,"application":"RESTRICTED_SILK","frame_size":480,"bitrate":8000,"complexity":3,"iterations":3000,"warmup":100},
+    {"name":"silk-dec-20ms-12k-c3","module":"silk","operation":"encode_decode","channels":1,"application":"RESTRICTED_SILK","frame_size":960,"bitrate":12000,"complexity":3,"iterations":3000,"warmup":100}
+  ]
+}

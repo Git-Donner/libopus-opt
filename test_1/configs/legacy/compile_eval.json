@@ -1,0 +1,25 @@
+{
+  "meta": {
+    "name": "compile-eval",
+    "version": "1.1",
+    "description": "固定长度块模式：每次调用处理一整块(100帧)PCM再计时，摊销单帧调用开销，凸显块内SIMD收益。"
+  },
+  "test_cases": [
+    {"name":"ev-celt-20ms-128k-c10","module":"celt","operation":"encode_decode","channels":1,"application":"RESTRICTED_CELT","frame_size":960,"bitrate":128000,"complexity":10,"chunk_frames":1000,"iterations":10,"warmup":2},
+    {"name":"ev-celt-10ms-64k-c10","module":"celt","operation":"encode_decode","channels":1,"application":"RESTRICTED_CELT","frame_size":480,"bitrate":64000,"complexity":10,"chunk_frames":1000,"iterations":10,"warmup":2},
+    {"name":"ev-celt-stereo-20ms-128k-c10","module":"celt","operation":"encode_decode","channels":2,"application":"RESTRICTED_CELT","frame_size":960,"bitrate":128000,"complexity":10,"chunk_frames":1000,"iterations":10,"warmup":2},
+    {"name":"ev-celt-20ms-24k-c10","module":"celt","operation":"encode_decode","channels":1,"application":"RESTRICTED_CELT","frame_size":960,"bitrate":24000,"complexity":10,"chunk_frames":1000,"iterations":10,"warmup":2},
+    {"name":"ev-audio-20ms-64k-c10","module":"dnn","operation":"encode_decode","channels":1,"application":"AUDIO","frame_size":960,"bitrate":64000,"complexity":10,"chunk_frames":1000,"iterations":10,"warmup":2},
+    {"name":"ev-audio-stereo-10ms-128k-c10","module":"dnn","operation":"encode_decode","channels":2,"application":"AUDIO","frame_size":480,"bitrate":128000,"complexity":10,"chunk_frames":1000,"iterations":10,"warmup":2},
+    {"name":"ev-voip-20ms-12k-c5","module":"auto","operation":"encode_decode","channels":1,"application":"VOIP","frame_size":960,"bitrate":12000,"complexity":5,"chunk_frames":1000,"iterations":10,"warmup":2},
+    {"name":"ev-voip-20ms-24k-fec-loss20","module":"dnn","operation":"encode_decode","channels":1,"application":"VOIP","frame_size":960,"bitrate":24000,"complexity":10,"use_fec":1,"loss_perc":20,"chunk_frames":1000,"iterations":10,"warmup":2},
+    {"name":"ev-silk-10ms-8k-c3","module":"silk","operation":"encode_decode","channels":1,"application":"RESTRICTED_SILK","frame_size":480,"bitrate":8000,"complexity":3,"chunk_frames":1000,"iterations":10,"warmup":2},
+    {"name":"ev-silk-20ms-8k-c3","module":"silk","operation":"encode_decode","channels":1,"application":"RESTRICTED_SILK","frame_size":960,"bitrate":8000,"complexity":3,"chunk_frames":1000,"iterations":10,"warmup":2},
+    {"name":"ev-silk-20ms-12k-c3","module":"silk","operation":"encode_decode","channels":1,"application":"RESTRICTED_SILK","frame_size":960,"bitrate":12000,"complexity":3,"chunk_frames":1000,"iterations":10,"warmup":2},
+    {"name":"ev-silk-10ms-16k-c3","module":"silk","operation":"encode_decode","channels":1,"application":"RESTRICTED_SILK","frame_size":480,"bitrate":16000,"complexity":3,"chunk_frames":1000,"iterations":10,"warmup":2},
+    {"name":"ev-silk-20ms-24k-c5","module":"silk","operation":"encode_decode","channels":1,"application":"RESTRICTED_SILK","frame_size":960,"bitrate":24000,"complexity":5,"chunk_frames":1000,"iterations":10,"warmup":2},
+    {"name":"ev-silk-40ms-24k-c10","module":"silk","operation":"encode_decode","channels":1,"application":"RESTRICTED_SILK","frame_size":1920,"bitrate":24000,"complexity":10,"chunk_frames":1000,"iterations":10,"warmup":2},
+    {"name":"ev-silk-stereo-20ms-24k-c5","module":"silk","operation":"encode_decode","channels":2,"application":"RESTRICTED_SILK","frame_size":960,"bitrate":24000,"complexity":5,"chunk_frames":1000,"iterations":10,"warmup":2},
+    {"name":"ev-celt-20ms-32k-c10","module":"celt","operation":"encode_decode","channels":1,"application":"RESTRICTED_CELT","frame_size":960,"bitrate":32000,"complexity":10,"chunk_frames":1000,"iterations":10,"warmup":2},
+    {"name":"ev-celt-20ms-64k-c10","module":"celt","operation":"encode_decode","channels":1,"application":"RESTRICTED_CELT","frame_size":960,"bitrate":64000,"complexity":10,"chunk_frames":1000,"iterations":10,"warmup":2}  ]
+}

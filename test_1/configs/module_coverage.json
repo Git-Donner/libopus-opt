@@ -1,0 +1,15 @@
+{
+  "schema_version": 2,
+  "name": "six-scenarios",
+  "description": "Six moderate mono 20 ms workloads, independently verifying SILK/CELT/HYBRID encoder and decoder operators. Decode uses a shared baseline packet corpus.",
+  "repeats": 7,
+  "seed": 42,
+  "test_cases": [
+    {"name": "silk-encode", "mode": "silk", "operation": "encode", "sample_rate": 48000, "channels": 1, "frame_size": 960, "bitrate": 16000, "complexity": 5, "bandwidth": "WIDEBAND", "signal": "mixed", "frames": 1000, "warmup": 100},
+    {"name": "silk-decode", "mode": "silk", "operation": "decode", "sample_rate": 48000, "channels": 1, "frame_size": 960, "bitrate": 16000, "complexity": 5, "bandwidth": "WIDEBAND", "signal": "mixed", "frames": 1000, "warmup": 100},
+    {"name": "celt-encode", "mode": "celt", "operation": "encode", "sample_rate": 48000, "channels": 1, "frame_size": 960, "bitrate": 64000, "complexity": 5, "bandwidth": "FULLBAND", "signal": "mixed", "frames": 1000, "warmup": 100},
+    {"name": "celt-decode", "mode": "celt", "operation": "decode", "sample_rate": 48000, "channels": 1, "frame_size": 960, "bitrate": 64000, "complexity": 5, "bandwidth": "FULLBAND", "signal": "mixed", "frames": 1000, "warmup": 100},
+    {"name": "hybrid-encode", "mode": "hybrid", "operation": "encode", "sample_rate": 48000, "channels": 1, "frame_size": 960, "bitrate": 32000, "complexity": 5, "bandwidth": "FULLBAND", "signal": "mixed", "frames": 1000, "warmup": 100},
+    {"name": "hybrid-decode", "mode": "hybrid", "operation": "decode", "sample_rate": 48000, "channels": 1, "frame_size": 960, "bitrate": 32000, "complexity": 5, "bandwidth": "FULLBAND", "signal": "mixed", "frames": 1000, "warmup": 100}
+  ]
+}

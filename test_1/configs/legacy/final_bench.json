@@ -1,0 +1,17 @@
+{
+  "meta": {
+    "name": "final-bench",
+    "version": "1.0",
+    "description": "聚焦最终确认用例，多点取最优，抑制共享机负载噪声。"
+  },
+  "test_cases": [
+    {"name":"fin-silk-mono-10ms-8k-c3","module":"silk","operation":"encode_only","channels":1,"application":"RESTRICTED_SILK","frame_size":480,"bitrate":8000,"complexity":3,"iterations":3000,"warmup":100},
+    {"name":"fin-silk-mono-20ms-8k-c3","module":"silk","operation":"encode_only","channels":1,"application":"RESTRICTED_SILK","frame_size":960,"bitrate":8000,"complexity":3,"iterations":3000,"warmup":100},
+    {"name":"fin-silk-mono-20ms-12k-c3","module":"silk","operation":"encode_only","channels":1,"application":"RESTRICTED_SILK","frame_size":960,"bitrate":12000,"complexity":3,"iterations":3000,"warmup":100},
+    {"name":"fin-silk-mono-10ms-16k-c3","module":"silk","operation":"encode_only","channels":1,"application":"RESTRICTED_SILK","frame_size":480,"bitrate":16000,"complexity":3,"iterations":3000,"warmup":100},
+    {"name":"fin-silk-mono-10ms-8k-c4","module":"silk","operation":"encode_only","channels":1,"application":"RESTRICTED_SILK","frame_size":480,"bitrate":8000,"complexity":4,"iterations":3000,"warmup":100},
+    {"name":"fin-silk-mono-10ms-8k-c5","module":"silk","operation":"encode_only","channels":1,"application":"RESTRICTED_SILK","frame_size":480,"bitrate":8000,"complexity":5,"iterations":3000,"warmup":100},
+    {"name":"fin-silk-rt-mono-10ms-8k-c3","module":"silk","operation":"encode_decode","channels":1,"application":"RESTRICTED_SILK","frame_size":480,"bitrate":8000,"complexity":3,"iterations":3000,"warmup":100},
+    {"name":"fin-silk-rt-mono-20ms-8k-c3","module":"silk","operation":"encode_decode","channels":1,"application":"RESTRICTED_SILK","frame_size":960,"bitrate":8000,"complexity":3,"iterations":3000,"warmup":100}
+  ]
+}
