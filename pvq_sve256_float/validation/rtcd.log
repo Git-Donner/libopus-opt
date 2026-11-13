@@ -1,0 +1,1 @@
+PASS: RTCD slots0..2=C,slots3..4=SVE-safe wrapper; dispatched result equals NEON

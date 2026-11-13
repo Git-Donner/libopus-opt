@@ -1,0 +1,13 @@
+libtoolize: putting auxiliary files in '.'.
+libtoolize: linking file './ltmain.sh'
+libtoolize: putting macros in AC_CONFIG_MACRO_DIRS, 'm4'.
+libtoolize: linking file 'm4/libtool.m4'
+libtoolize: linking file 'm4/ltoptions.m4'
+libtoolize: linking file 'm4/ltsugar.m4'
+libtoolize: linking file 'm4/ltversion.m4'
+libtoolize: linking file 'm4/lt~obsolete.m4'
+configure.ac:37: installing './compile'
+configure.ac:33: installing './missing'
+Makefile.am:479: warning: '%'-style pattern rules are a GNU make extension
+Makefile.am:482: warning: '%'-style pattern rules are a GNU make extension
+Makefile.am: installing './depcomp'

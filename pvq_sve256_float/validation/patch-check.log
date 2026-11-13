@@ -1,0 +1,23 @@
+checking file CMakeLists.txt
+checking file Makefile.am
+checking file configure.ac
+checking file cmake/OpusSources.cmake
+checking file celt_sources.mk
+checking file celt/arm/vq_arm.h
+checking file celt/arm/arm_celt_map.c
+checking file celt/arm/vq_sve256.c
+checking file celt/arm/vq_sve_dispatch.c
+checking file celt/tests/test_unit_pvq_sve256.c
+checking file celt/tests/test_encoder_dispatch_sve256.c
+patching file CMakeLists.txt
+patching file Makefile.am
+patching file configure.ac
+patching file cmake/OpusSources.cmake
+patching file celt_sources.mk
+patching file celt/arm/vq_arm.h
+patching file celt/arm/arm_celt_map.c
+patching file celt/arm/vq_sve256.c
+patching file celt/arm/vq_sve_dispatch.c
+patching file celt/tests/test_unit_pvq_sve256.c
+patching file celt/tests/test_encoder_dispatch_sve256.c
+PASS: dry-run and apply on saved NEON baseline; every resulting changed file exactly matches delivery.

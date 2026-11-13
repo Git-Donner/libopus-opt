@@ -1,0 +1,82 @@
+{
+  "description": "Linux/AArch64 float SVE256 PVQ incremental overlay on existing NEON implementation",
+  "reference_repository_commit": "afc5d43ecb3a94eca32b211e26b27dfa530d7305",
+  "base_note": "Reference commit alone does not include the root NEON overlay. Use per-file before hashes and required NEON baseline hashes.",
+  "required_unchanged_base_files": {
+    "celt/arm/vq_neon_intr.c": "689522b99cf2aa1a4bdb55137b7e9f9a2447ef3446da78873766ef24c8976565",
+    "celt/vq.h": "93ecfbfbfb00fd77614f0339b426f0e4900d7c789c348e97188bf9b753d16ac0",
+    "celt_headers.mk": "8678aa7b1ab0f4955ebd8d06e227a372c5d1e03381d5c40a2ea4b0bc6082db30"
+  },
+  "files": [
+    {
+      "path": "CMakeLists.txt",
+      "status": "modified",
+      "before_sha256": "caf18f13b8e459104cced0fbba613c4829f54e959cf764e922af48d44162a7b1",
+      "after_sha256": "9dfe04fbe7fc5b303ea342bc00e2ef6b921c1e31c90314de4408d93276d486db"
+    },
+    {
+      "path": "Makefile.am",
+      "status": "modified",
+      "before_sha256": "17aff2d6e1ff66827da56d3b226a18a7799bb06c35b78b90b69627f61a4a0c20",
+      "after_sha256": "7ddc2a723337648ea0d58b4b94e6edad35175fae43219a98ab7ee5d6bf4819a9"
+    },
+    {
+      "path": "configure.ac",
+      "status": "modified",
+      "before_sha256": "4013bdd4c5ef7bc501ed398303bf9a4d41964ff5145ec849f665157eadc0503d",
+      "after_sha256": "f77ec56772c069c2bf60fbef91e602185ef7935906c5e39319571042f55a4087"
+    },
+    {
+      "path": "cmake/OpusSources.cmake",
+      "status": "modified",
+      "before_sha256": "1b3a9ddcd02e40a368624e2175a133158dd7781f30797cce4c77d947996932e6",
+      "after_sha256": "4ef31c11177323d4441422d038addf4fb3b7adfb206a3eb56382325de2e02c82"
+    },
+    {
+      "path": "celt_sources.mk",
+      "status": "modified",
+      "before_sha256": "afbd23a510b813368922bfbeef5a0529bfc8361a71350c7ff90fe5fe72ed34af",
+      "after_sha256": "a67956e517a8152a63dd49b735f521ba33edef122970901f8688d7c8ad764bb3"
+    },
+    {
+      "path": "celt/arm/vq_arm.h",
+      "status": "modified",
+      "before_sha256": "d5ca8c39fde2480318a8f6d6daccf63156e56719e63da75e29f2042a0d6ccaaa",
+      "after_sha256": "c61114e0dec7610e821f8549105b758002e09787b27b3fc1ff86b975d6a4bc93"
+    },
+    {
+      "path": "celt/arm/arm_celt_map.c",
+      "status": "modified",
+      "before_sha256": "a6dc335a996f02efdadf47012d506d027b197c4b03d9bb44fbc705a1149e80d2",
+      "after_sha256": "b89916f34b5f94be3a5e77d695a94187df0faa50ba26384a6ed27d68ed63633d"
+    },
+    {
+      "path": "celt/arm/vq_sve256.c",
+      "status": "added",
+      "before_sha256": null,
+      "after_sha256": "27706bb8fdf0dcd9c30cc54ce32cc55250b6505cf38668ca297aeec3dfff49de"
+    },
+    {
+      "path": "celt/arm/vq_sve_dispatch.c",
+      "status": "added",
+      "before_sha256": null,
+      "after_sha256": "d3a0dac1c6232672062ba99e1edaa5665fe6a0f3dcfbae768580a93dcccaa7bc"
+    },
+    {
+      "path": "celt/tests/test_unit_pvq_sve256.c",
+      "status": "added",
+      "before_sha256": null,
+      "after_sha256": "5057a056d4c974cf4dcfe56f21077256cf689d13ff029f66c35df07cbd79494c"
+    },
+    {
+      "path": "celt/tests/test_encoder_dispatch_sve256.c",
+      "status": "added",
+      "before_sha256": null,
+      "after_sha256": "eb87dd4422f88ac7675f097ec159428bebf5c3213a4b4de34a7a4651c2a7e876"
+    }
+  ],
+  "official_references": {
+    "acle-reference.md": "9e937d1f7e61497c05a2976803891147cae1743c7634297708d644ffc5b993dd",
+    "linux-sve-reference.rst": "3bf7bc81ec46a9e7796ce9ba30f4945226c8b8b44727f9d5fe50668fb20583a6"
+  }
+}

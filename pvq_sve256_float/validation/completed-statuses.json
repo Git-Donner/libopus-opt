@@ -1,0 +1,23 @@
+{
+  "cmake-float-build": 0,
+  "autotools-float-build": 0,
+  "unit-vl256": 0,
+  "unit-nosve": 0,
+  "encoder-vl256": 0,
+  "encoder-vl128": 0,
+  "encoder-vl512": 0,
+  "encoder-nosve": 0,
+  "autotools-unit": 0,
+  "autotools-encoder": 0,
+  "o3-unit": 0,
+  "o3-encoder": 0,
+  "ubsan": 0,
+  "rtcd": 0,
+  "fixed-build": 0,
+  "x86-five-tests": 0,
+  "arm-api": 0,
+  "arm-padding": 0,
+  "arm-decode": 0,
+  "arm-extensions": 0,
+  "autoreconf-final": 0
+}

@@ -1,0 +1,8 @@
+HWCAP_SVE=1; requested VL=32 bytes
+PASS: same-thread VL change to 16 bytes
+PASS: same-thread VL change to 32 bytes
+PASS: same-thread VL change to 64 bytes
+PASS: child thread SVE VL=16 bytes
+PASS: child thread SVE VL=32 bytes
+PASS: child thread SVE VL=64 bytes
+PASS: 12352 PVQ cases; exact NEON pulse/energy matches; direct SVE calls=12348; exact-N guard pages enabled on Linux

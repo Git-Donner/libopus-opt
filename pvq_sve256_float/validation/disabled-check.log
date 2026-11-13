@@ -1,0 +1,1 @@
+PASS: OPUS_ARM_SVE=OFF excludes kernel, wrapper and SVE macro; existing NEON implementation remains.

@@ -1,0 +1,948 @@
+diff --git a/CMakeLists.txt b/CMakeLists.txt
+--- a/CMakeLists.txt
++++ b/CMakeLists.txt
+@@ -59,6 +59,8 @@
+ set(OPUS_FIXED_POINT_HELP_STR "compile as fixed-point (for machines without a fast enough FPU).")
+ option(OPUS_FIXED_POINT ${OPUS_FIXED_POINT_HELP_STR} OFF)
+ add_feature_info(OPUS_FIXED_POINT OPUS_FIXED_POINT ${OPUS_FIXED_POINT_HELP_STR})
++
++option(OPUS_ARM_SVE "Build optional Linux/AArch64 256-bit SVE PVQ search" ON)
+ 
+ set(OPUS_ENABLE_FLOAT_API_HELP_STR "compile with the floating point API (for machines with float library).")
+ option(OPUS_ENABLE_FLOAT_API ${OPUS_ENABLE_FLOAT_API_HELP_STR} ON)
+@@ -606,6 +608,34 @@
+                                  OPUS_ARM_PRESUME_NEON
+                                  OPUS_ARM_PRESUME_NEON_INTR)
+     endif()
++  endif()
++endif()
++
++set(OPUS_HAVE_SVE256 FALSE)
++# Compile only the SVE kernel with scalable SVE flags. The baseline wrapper
++# detects hardware before entry; the kernel checks the calling thread's VL.
++if(OPUS_ARM_SVE AND NOT OPUS_FIXED_POINT AND NOT OPUS_DISABLE_INTRINSICS
++   AND COMPILER_SUPPORT_NEON AND CMAKE_SYSTEM_NAME STREQUAL "Linux"
++   AND CMAKE_SYSTEM_PROCESSOR MATCHES "^(aarch64|arm64)$")
++  include(CheckCSourceCompiles)
++  set(_opus_saved_required_flags "${CMAKE_REQUIRED_FLAGS}")
++  set(CMAKE_REQUIRED_FLAGS "${CMAKE_REQUIRED_FLAGS} -march=armv8-a+sve -msve-vector-bits=scalable")
++  check_c_source_compiles("
++    #include <arm_sve.h>
++    #include <sys/auxv.h>
++    #include <asm/hwcap.h>
++    int main(void) {
++      static int cached;
++      __atomic_store_n(&cached, (int)(getauxval(AT_HWCAP)&HWCAP_SVE), __ATOMIC_RELAXED);
++      return svmaxv_s32(svptrue_b32(), svindex_s32(0,1)) + __atomic_load_n(&cached, __ATOMIC_RELAXED);
++    }" OPUS_COMPILER_SUPPORT_SVE256)
++  set(CMAKE_REQUIRED_FLAGS "${_opus_saved_required_flags}")
++  if(OPUS_COMPILER_SUPPORT_SVE256)
++    set(OPUS_HAVE_SVE256 TRUE)
++    target_compile_definitions(opus PRIVATE OPUS_ARM_MAY_HAVE_SVE256_INTR)
++    add_sources_group(opus celt ${celt_sources_arm_sve256_intr} ${celt_sources_arm_sve256_dispatch})
++    set_property(SOURCE ${celt_sources_arm_sve256_intr} APPEND PROPERTY COMPILE_OPTIONS
++                 -march=armv8-a+sve -msve-vector-bits=scalable)
+   endif()
+ endif()
+ 
+@@ -706,6 +736,25 @@
+ 
+ if(BUILD_TESTING AND NOT BUILD_SHARED_LIBS)
+   enable_testing()
++
++  # Private SVE correctness tests inherit the exact private library macros.
++  if(OPUS_HAVE_SVE256)
++    find_package(Threads REQUIRED)
++    get_target_property(_opus_test_definitions opus COMPILE_DEFINITIONS)
++    get_target_property(_opus_test_includes opus INCLUDE_DIRECTORIES)
++    add_executable(test_unit_pvq_sve256 celt/tests/test_unit_pvq_sve256.c)
++    target_compile_definitions(test_unit_pvq_sve256 PRIVATE ${_opus_test_definitions})
++    target_include_directories(test_unit_pvq_sve256 PRIVATE ${_opus_test_includes})
++    target_link_libraries(test_unit_pvq_sve256 PRIVATE opus Threads::Threads)
++    add_test(NAME test_unit_pvq_sve256 COMMAND test_unit_pvq_sve256 32)
++    set_tests_properties(test_unit_pvq_sve256 PROPERTIES SKIP_RETURN_CODE 77)
++
++    add_executable(test_encoder_dispatch_sve256 celt/tests/test_encoder_dispatch_sve256.c)
++    target_link_libraries(test_encoder_dispatch_sve256 PRIVATE opus)
++    target_link_options(test_encoder_dispatch_sve256 PRIVATE -Wl,--wrap=op_pvq_search_sve256)
++    add_test(NAME test_encoder_dispatch_sve256 COMMAND test_encoder_dispatch_sve256 32)
++    set_tests_properties(test_encoder_dispatch_sve256 PROPERTIES SKIP_RETURN_CODE 77)
++  endif()
+ 
+   # tests
+   add_executable(test_opus_decode ${test_opus_decode_sources})
+diff --git a/Makefile.am b/Makefile.am
+--- a/Makefile.am
++++ b/Makefile.am
+@@ -105,6 +105,10 @@
+ if HAVE_ARM_NEON_INTR
+ CELT_SOURCES += $(CELT_SOURCES_ARM_NEON_INTR)
+ SILK_SOURCES += $(SILK_SOURCES_ARM_NEON_INTR)
++endif
++
++if HAVE_ARM_SVE256_INTR
++CELT_SOURCES += $(CELT_SOURCES_ARM_SVE256_INTR) $(CELT_SOURCES_ARM_SVE256_DISPATCH)
+ endif
+ 
+ if OPUS_ARM_EXTERNAL_ASM
+@@ -347,7 +351,9 @@
+ endif
+ 
+ 
+-EXTRA_DIST = opus.pc.in \
++EXTRA_DIST = celt/tests/test_unit_pvq_sve256.c \
++             celt/tests/test_encoder_dispatch_sve256.c \
++             opus.pc.in \
+              scripts/osce/run_osce_tests.py \
+              scripts/osce/README.md \
+              scripts/osce/requirements.txt \
+@@ -521,6 +527,11 @@
+  $(OPUS_ARM_NEON_INTR_CFLAGS)
+ endif
+ 
++if HAVE_ARM_SVE256_INTR
++ARM_SVE256_OBJ = $(CELT_SOURCES_ARM_SVE256_INTR:.c=.lo)
++$(ARM_SVE256_OBJ): CFLAGS += $(OPUS_ARM_SVE256_INTR_CFLAGS)
++endif
++
+ if HAVE_ARM_DOTPROD
+ ARM_DOTPROD_OBJ = $(DNN_SOURCES_DOTPROD:.c=.lo)
+ $(ARM_DOTPROD_OBJ): CFLAGS += $(ARM_DOTPROD_INTR_CFLAGS)
+diff --git a/configure.ac b/configure.ac
+--- a/configure.ac
++++ b/configure.ac
+@@ -782,6 +782,37 @@
+ AM_CONDITIONAL([CPU_ARM], [test "$cpu_arm" = "yes"])
+ AM_CONDITIONAL([HAVE_ARM_DOTPROD],
+     [test x"$OPUS_ARM_MAY_HAVE_DOTPROD" = x"1"])
++AC_ARG_ENABLE([sve],
++    [AS_HELP_STRING([--disable-sve], [disable optional Linux/AArch64 256-bit SVE PVQ search])],,
++    [enable_sve=auto])
++OPUS_ARM_SVE256_INTR_CFLAGS="-march=armv8-a+sve -msve-vector-bits=scalable"
++AS_IF([test x"$enable_sve" != x"no" && test x"$enable_fixed_point" != x"yes" &&
++       test x"$OPUS_ARM_MAY_HAVE_NEON_INTR" = x"1"], [
++   AS_CASE([$host], [aarch64*-*-linux*], [
++      opus_save_CFLAGS="$CFLAGS"
++      CFLAGS="$CFLAGS $OPUS_ARM_SVE256_INTR_CFLAGS"
++      AC_MSG_CHECKING([for Linux AArch64 scalable SVE intrinsics and HWCAP])
++      AC_LINK_IFELSE([AC_LANG_PROGRAM([[
++         #include <arm_sve.h>
++         #include <sys/auxv.h>
++         #include <asm/hwcap.h>
++      ]], [[
++         static int cached;
++         __atomic_store_n(&cached, (int)(getauxval(AT_HWCAP) & HWCAP_SVE), __ATOMIC_RELAXED);
++         return svmaxv_s32(svptrue_b32(), svindex_s32(0, 1)) + __atomic_load_n(&cached, __ATOMIC_RELAXED);
++      ]])], [OPUS_ARM_MAY_HAVE_SVE256_INTR=1], [OPUS_ARM_MAY_HAVE_SVE256_INTR=0])
++      CFLAGS="$opus_save_CFLAGS"
++      AS_IF([test x"$OPUS_ARM_MAY_HAVE_SVE256_INTR" = x"1"], [
++         AC_MSG_RESULT([yes])
++         AC_DEFINE([OPUS_ARM_MAY_HAVE_SVE256_INTR], 1, [Build optional Linux/AArch64 SVE256 PVQ search])
++      ], [AC_MSG_RESULT([no])])
++   ])
++])
++AS_IF([test x"$enable_sve" = x"yes" && test x"$OPUS_ARM_MAY_HAVE_SVE256_INTR" != x"1"],
++      [AC_MSG_ERROR([SVE PVQ requires a floating-point Linux/AArch64 NEON build and a compiler with SVE support])])
++AC_SUBST([OPUS_ARM_SVE256_INTR_CFLAGS])
++AM_CONDITIONAL([HAVE_ARM_SVE256_INTR], [test x"$OPUS_ARM_MAY_HAVE_SVE256_INTR" = x"1"])
++
+ AM_CONDITIONAL([HAVE_ARM_NEON_INTR],
+     [test x"$OPUS_ARM_MAY_HAVE_NEON_INTR" = x"1"])
+ AM_CONDITIONAL([CPU_X86], [test "$cpu_x86" = "yes"])
+diff --git a/cmake/OpusSources.cmake b/cmake/OpusSources.cmake
+--- a/cmake/OpusSources.cmake
++++ b/cmake/OpusSources.cmake
+@@ -39,6 +39,9 @@
+ get_opus_sources(CELT_SOURCES_ARM_NEON_INTR celt_sources.mk
+                  celt_sources_arm_neon_intr)
+ 
++get_opus_sources(CELT_SOURCES_ARM_SVE256_INTR celt_sources.mk celt_sources_arm_sve256_intr)
++get_opus_sources(CELT_SOURCES_ARM_SVE256_DISPATCH celt_sources.mk celt_sources_arm_sve256_dispatch)
++
+ get_opus_sources(DEEP_PLC_HEAD lpcnet_headers.mk deep_plc_headers)
+ get_opus_sources(DRED_HEAD lpcnet_headers.mk dred_headers)
+ get_opus_sources(OSCE_HEAD lpcnet_headers.mk osce_headers)
+diff --git a/celt_sources.mk b/celt_sources.mk
+--- a/celt_sources.mk
++++ b/celt_sources.mk
+@@ -55,3 +55,9 @@
+ celt/arm/celt_tx_neon.S \
+ celt/arm/pitch_neon_intr.c \
+ celt/arm/vq_neon_intr.c
++
++CELT_SOURCES_ARM_SVE256_INTR = \
++celt/arm/vq_sve256.c
++
++CELT_SOURCES_ARM_SVE256_DISPATCH = \
++celt/arm/vq_sve_dispatch.c
+diff --git a/celt/arm/vq_arm.h b/celt/arm/vq_arm.h
+--- a/celt/arm/vq_arm.h
++++ b/celt/arm/vq_arm.h
+@@ -34,11 +34,19 @@
+ 
+ opus_val16 op_pvq_search_neon(celt_norm *X, int *iy, int K, int N, int arch);
+ 
++#if defined(OPUS_ARM_MAY_HAVE_SVE256_INTR)
++opus_val16 op_pvq_search_sve256(celt_norm *X, int *iy, int K, int N, int arch);
++opus_val16 op_pvq_search_arm_sve256(celt_norm *X, int *iy, int K, int N, int arch);
++#define OPUS_PVQ_SEARCH_NEON_IMPL op_pvq_search_arm_sve256
++#else
++#define OPUS_PVQ_SEARCH_NEON_IMPL op_pvq_search_neon
++#endif
++
+ #if defined(OPUS_ARM_PRESUME_NEON_INTR)
+ 
+ #define OVERRIDE_OP_PVQ_SEARCH (1)
+ #define op_pvq_search(X, iy, K, N, arch) \
+-    (op_pvq_search_neon(X, iy, K, N, arch))
++    (OPUS_PVQ_SEARCH_NEON_IMPL(X, iy, K, N, arch))
+ 
+ #elif defined(OPUS_HAVE_RTCD)
+ 
+diff --git a/celt/arm/arm_celt_map.c b/celt/arm/arm_celt_map.c
+--- a/celt/arm/arm_celt_map.c
++++ b/celt/arm/arm_celt_map.c
+@@ -98,8 +98,8 @@
+   op_pvq_search_c,                /* ARMv4 */
+   op_pvq_search_c,                /* EDSP */
+   op_pvq_search_c,                /* Media */
+-  op_pvq_search_neon,             /* NEON */
+-  op_pvq_search_neon              /* DOTPROD */
++  OPUS_PVQ_SEARCH_NEON_IMPL,       /* NEON, optional SVE256 */
++  OPUS_PVQ_SEARCH_NEON_IMPL        /* DOTPROD, optional SVE256 */
+ };
+ 
+ void (*const CELT_PITCH_XCORR_IMPL[OPUS_ARCHMASK+1])(const opus_val16 *,
+diff --git a/celt/arm/vq_sve256.c b/celt/arm/vq_sve256.c
+new file mode 100644
+--- /dev/null
++++ b/celt/arm/vq_sve256.c
+@@ -0,0 +1,236 @@
++/* Copyright (c) 2007-2008 CSIRO
++   Copyright (c) 2007-2009 Xiph.Org Foundation
++   Copyright (c) 2007-2016 Jean-Marc Valin */
++/*
++   Redistribution and use in source and binary forms, with or without
++   modification, are permitted provided that the following conditions
++   are met:
++
++   - Redistributions of source code must retain the above copyright
++   notice, this list of conditions and the following disclaimer.
++
++   - Redistributions in binary form must reproduce the above copyright
++   notice, this list of conditions and the following disclaimer in the
++   documentation and/or other materials provided with the distribution.
++
++   THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
++   ``AS IS'' AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
++   LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
++   A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER
++   OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL,
++   EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO,
++   PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR
++   PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF
++   LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING
++   NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
++   SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
++*/
++
++/* Floating-point PVQ search for AArch64 SVE with a 256-bit current VL.
++   Projection and sign handling retain the existing NEON arithmetic. The
++   greedy scan evaluates eight candidates per iteration, then reconstructs
++   the NEON four-stream tie policy. Build with scalable SVE vector length:
++   the entry guard must remain valid when another thread uses another VL. */
++#ifdef HAVE_CONFIG_H
++#include "config.h"
++#endif
++
++#ifndef FIXED_POINT
++#include <arm_neon.h>
++#include <arm_sve.h>
++#include <limits.h>
++#include "stack_alloc.h"
++#include "mathops.h"
++#include "vq.h"
++
++/* Keep SSE's (lane0+lane2)+(lane1+lane3) reduction order. */
++static OPUS_INLINE float pvq_sum_f32(float32x4_t v)
++{
++   v = vaddq_f32(v, vextq_f32(v, v, 2));
++   v = vaddq_f32(v, vrev64q_f32(v));
++   return vgetq_lane_f32(v, 0);
++}
++
++static OPUS_INLINE opus_int32 pvq_sum_s32(int32x4_t v)
++{
++   v = vaddq_s32(v, vextq_s32(v, v, 2));
++   v = vaddq_s32(v, vrev64q_s32(v));
++   return vgetq_lane_s32(v, 0);
++}
++
++/* ARM's raw estimate has less precision than SSE RCPPS/RSQRTPS.
++   One Newton step gives sufficient precision for the float search without
++   requiring AArch64-only division/sqrt instructions or FMA. */
++static OPUS_INLINE float32x4_t pvq_rcp_f32(float32x4_t x)
++{
++   float32x4_t r = vrecpeq_f32(x);
++   return vmulq_f32(r, vrecpsq_f32(x, r));
++}
++
++static OPUS_INLINE svfloat32_t pvq_rsqrt_sve(svfloat32_t x)
++{
++   svfloat32_t r = svrsqrte_f32(x);
++   /* Identical per-lane operation order to pvq_rsqrt_f32 in the NEON path. */
++   return svmul_f32_x(svptrue_b32(), r,
++                      svrsqrts_f32(svmul_f32_x(svptrue_b32(), x, r), r));
++}
++
++opus_val16 op_pvq_search_sve256(celt_norm *_X, int *iy, int K, int N, int arch)
++{
++   int i, j, pulsesLeft;
++   float xy, yy;
++   float32x4_t sums;
++   VARDECL(celt_norm, y);
++   VARDECL(celt_norm, X);
++   VARDECL(opus_uint32, signy);
++   SAVE_STACK;
++
++   /* The baseline dispatcher checks hardware support before this function.
++      VL belongs to the calling thread and may change after encoder creation.
++      Do not compile this file with -msve-vector-bits=256: that would allow the
++      compiler to remove this runtime check. */
++   if (svcntw() != 8 || N < 8)
++   {
++      RESTORE_STACK;
++      return op_pvq_search_neon(_X, iy, K, N, arch);
++   }
++   celt_assert(N > 1);
++   celt_assert(K >= 0);
++   ALLOC(y, N+3, celt_norm);
++   ALLOC(X, N+3, celt_norm);
++   ALLOC(signy, N+3, opus_uint32);
++
++   /* Only local arrays are padded: neither _X nor iy needs extra elements. */
++   OPUS_COPY(X, _X, N);
++   X[N] = X[N+1] = X[N+2] = 0;
++   OPUS_CLEAR(iy, N);
++   sums = vdupq_n_f32(0);
++   for (j=0;j<N;j+=4)
++   {
++      float32x4_t x4 = vld1q_f32(X+j);
++      /* Use x<0, not the sign bit: -0 must be treated as in the SSE code. */
++      vst1q_u32(signy+j, vcltq_f32(x4, vdupq_n_f32(0)));
++      x4 = vabsq_f32(x4);
++      sums = vaddq_f32(sums, x4);
++      vst1q_f32(X+j, x4);
++      vst1q_f32(y+j, vdupq_n_f32(0));
++   }
++   xy = yy = 0;
++   pulsesLeft = K;
++
++   if (K > (N>>1))
++   {
++      float sum = pvq_sum_f32(sums);
++      float32x4_t rcp4, xy4, yy4;
++      int32x4_t pulses_sum = vdupq_n_s32(0);
++      if (!(sum > EPSILON && sum < 64))
++      {
++         X[0] = 1.f;
++         for (j=1;j<N;j++) X[j] = 0;
++         sum = 1.f;
++      }
++      rcp4 = vmulq_f32(vdupq_n_f32((float)(K+.8)),
++                       pvq_rcp_f32(vdupq_n_f32(sum)));
++      xy4 = yy4 = vdupq_n_f32(0);
++      for (j=0;j<N;j+=4)
++      {
++         float32x4_t x4 = vld1q_f32(X+j);
++         /* Values are nonnegative, so truncation equals floor. */
++         int32x4_t iy4 = vcvtq_s32_f32(vmulq_f32(x4, rcp4));
++         float32x4_t y4 = vcvtq_f32_s32(iy4);
++         pulses_sum = vaddq_s32(pulses_sum, iy4);
++         if (j+3 < N)
++            vst1q_s32(iy+j, iy4);
++         else
++         {
++            opus_int32 tail[4];
++            int t;
++            vst1q_s32(tail, iy4);
++            for (t=0;j+t<N;t++) iy[j+t] = tail[t];
++         }
++         xy4 = vaddq_f32(xy4, vmulq_f32(x4, y4));
++         yy4 = vaddq_f32(yy4, vmulq_f32(y4, y4));
++         vst1q_f32(y+j, vaddq_f32(y4, y4));
++      }
++      pulsesLeft -= pvq_sum_s32(pulses_sum);
++      xy = pvq_sum_f32(xy4);
++      yy = pvq_sum_f32(yy4);
++      /* Defend the pulse budget even for unusually large K or rounding at
++         a projection boundary. Normal CELT inputs should not enter here. */
++      if (pulsesLeft < 0)
++      {
++         OPUS_CLEAR(iy, N);
++         for (j=0;j<N+3;j++) y[j] = 0;
++         xy = yy = 0;
++         pulsesLeft = K;
++      }
++   }
++   celt_sig_assert(pulsesLeft >= 0);
++   if (pulsesLeft > N+3)
++   {
++      float tmp = (float)pulsesLeft;
++      yy += tmp*tmp;
++      yy += tmp*y[0];
++      iy[0] += pulsesLeft;
++      pulsesLeft = 0;
++   }
++
++   for (i=0;i<pulsesLeft;i++)
++   {
++      svbool_t all = svptrue_b32();
++      svbool_t first_four = svwhilelt_b32_s32(0, 4);
++      svfloat32_t best = svdup_n_f32(0);
++      svint32_t pos = svdup_n_s32(0);
++      svint32_t count = svindex_s32(0, 1);
++      svfloat32_t xy8, yy8;
++      svint32_t candidates, paired;
++      float maximum;
++      yy += 1;
++      xy8 = svdup_n_f32(xy);
++      yy8 = svdup_n_f32(yy);
++      for (j=0;j<N;j+=8)
++      {
++         svbool_t active = svwhilelt_b32_s32(j, N);
++         svfloat32_t num = svadd_f32_x(active, svld1_f32(active, X+j), xy8);
++         svfloat32_t den = svadd_f32_x(active, svld1_f32(active, y+j), yy8);
++         svfloat32_t score;
++         /* Estimate/step instructions are unpredicated. Give inactive lanes
++            denominator 1 to avoid spurious 0*infinity exceptions in the tail. */
++         den = svsel_f32(active, den, svdup_n_f32(1));
++         score = svmul_f32_x(active, num, pvq_rsqrt_sve(den));
++         svbool_t better = svcmpgt_f32(active, score, best);
++         pos = svsel_s32(better, count, pos);
++         best = svsel_f32(better, score, best);
++         count = svadd_n_s32_x(all, count, 8);
++      }
++      /* Each SVE lane retains its FIRST maximum. Merge lanes r and r+4
++         by MINIMUM position among global winners, then take MAXIMUM over
++         r=0..3. This exactly preserves NEON's modulo-4 tie rule: for equal
++         N=8,K=1 inputs the chosen index is 3, not 7. */
++      maximum = svmaxv_f32(all, best);
++      candidates = svsel_s32(svcmpeq_n_f32(all, best, maximum), pos,
++                            svdup_n_s32(INT_MAX));
++      paired = svmin_s32_x(all, candidates,
++                          svext_s32(candidates, candidates, 4));
++      paired = svsel_s32(svcmplt_n_s32(all, paired, N), paired,
++                        svdup_n_s32(0));
++      j = svmaxv_s32(first_four, paired);
++      celt_assert(j < N);
++      xy += X[j];
++      yy += y[j];
++      y[j] += 2;
++      iy[j]++;
++   }
++
++   for (j=0;j+3<N;j+=4)
++   {
++      int32x4_t p4 = vld1q_s32(iy+j);
++      int32x4_t s4 = vreinterpretq_s32_u32(vld1q_u32(signy+j));
++      vst1q_s32(iy+j, veorq_s32(vaddq_s32(p4, s4), s4));
++   }
++   for (;j<N;j++)
++      if (signy[j]) iy[j] = -iy[j];
++   RESTORE_STACK;
++   return yy;
++}
++#endif /* !FIXED_POINT */
+diff --git a/celt/arm/vq_sve_dispatch.c b/celt/arm/vq_sve_dispatch.c
+new file mode 100644
+--- /dev/null
++++ b/celt/arm/vq_sve_dispatch.c
+@@ -0,0 +1,59 @@
++/* Copyright (c) 2016 Jean-Marc Valin */
++/*
++   Redistribution and use in source and binary forms, with or without
++   modification, are permitted provided that the following conditions
++   are met:
++
++   - Redistributions of source code must retain the above copyright
++   notice, this list of conditions and the following disclaimer.
++
++   - Redistributions in binary form must reproduce the above copyright
++   notice, this list of conditions and the following disclaimer in the
++   documentation and/or other materials provided with the distribution.
++
++   THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
++   ``AS IS'' AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
++   LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
++   A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER
++   OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL,
++   EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO,
++   PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR
++   PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF
++   LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING
++   NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
++   SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
++*/
++
++/* This translation unit uses the baseline ISA. Never put it in the SVE
++   source group: HWCAP must be checked before executing even CNTW. */
++#ifdef HAVE_CONFIG_H
++#include "config.h"
++#endif
++
++#if !defined(FIXED_POINT) && defined(OPUS_ARM_MAY_HAVE_SVE256_INTR)
++#include <sys/auxv.h>
++#include <asm/hwcap.h>
++#include "vq.h"
++
++static int pvq_have_sve(void)
++{
++   /* 0=unknown, 1=unavailable, 2=available. Linux HWCAP is process-wide;
++      vector length is thread state and is checked in the SVE entry itself.
++      Relaxed atomics suffice: this integer publishes no other state. */
++   static int cached;
++   int state = __atomic_load_n(&cached, __ATOMIC_RELAXED);
++   if (!state)
++   {
++      state = (getauxval(AT_HWCAP) & HWCAP_SVE) ? 2 : 1;
++      __atomic_store_n(&cached, state, __ATOMIC_RELAXED);
++   }
++   return state == 2;
++}
++
++opus_val16 op_pvq_search_arm_sve256(celt_norm *X, int *iy, int K, int N, int arch)
++{
++   if (N >= 8 && pvq_have_sve())
++      return op_pvq_search_sve256(X, iy, K, N, arch);
++   return op_pvq_search_neon(X, iy, K, N, arch);
++}
++#endif
+diff --git a/celt/tests/test_unit_pvq_sve256.c b/celt/tests/test_unit_pvq_sve256.c
+new file mode 100644
+--- /dev/null
++++ b/celt/tests/test_unit_pvq_sve256.c
+@@ -0,0 +1,356 @@
++/* Tests for the floating-point 256-bit SVE PVQ search.
++   Redistribution and use in source and binary forms, with or without
++   modification, are permitted provided that the following conditions are met:
++   - Redistributions of source code must retain this notice,
++     this list of conditions and the following disclaimer.
++   - Redistributions in binary form must reproduce this notice,
++     this list of conditions and the following disclaimer in the documentation
++     and/or other materials provided with the distribution.
++   THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
++   AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
++   IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
++   ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE
++   LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
++   CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
++   SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
++   INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
++   CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
++   ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
++   POSSIBILITY OF SUCH DAMAGE. */
++
++/* Correctness tests, not a performance benchmark. The SVE256 implementation
++   must preserve the current NEON pulse vector and returned energy exactly.
++   Build this test without SVE target flags, so no-SVE fallback is testable. */
++#ifndef _GNU_SOURCE
++#define _GNU_SOURCE
++#endif
++#ifdef HAVE_CONFIG_H
++#include "config.h"
++#endif
++
++#include <math.h>
++#include <stdint.h>
++#include <stdio.h>
++#include <stdlib.h>
++#include <string.h>
++#include "vq.h"
++#include "stack_alloc.h"
++#include "cpu_support.h"
++
++#if !defined(FIXED_POINT) && defined(OPUS_ARM_MAY_HAVE_SVE256_INTR)
++
++#if defined(__linux__)
++#include <sys/mman.h>
++#include <unistd.h>
++#include <sys/auxv.h>
++#include <sys/prctl.h>
++#include <asm/hwcap.h>
++#include <linux/prctl.h>
++#include <pthread.h>
++#endif
++
++#define MAX_TEST_N 256
++#define GUARD_VALUE 0x5a319c27
++
++typedef struct {
++   unsigned char *allocation;
++   size_t allocation_size;
++   int *guard;
++   void *data;
++   int mapped;
++} GuardedBuffer;
++
++static unsigned int random_state = 0x9e3779b9U;
++static int tests_run;
++static int have_sve;
++static int direct_tests;
++static int requested_vl;
++
++extern opus_val16 op_pvq_search_sve256(celt_norm *, int *, int, int, int);
++
++static unsigned int next_random(void)
++{
++   random_state ^= random_state << 13;
++   random_state ^= random_state >> 17;
++   random_state ^= random_state << 5;
++   return random_state;
++}
++
++static void die(const char *message, int N, int K, int pattern)
++{
++   fprintf(stderr, "FAIL: %s (N=%d K=%d pattern=%d)\n", message, N, K, pattern);
++   exit(EXIT_FAILURE);
++}
++
++/* On Linux, the last requested element is immediately followed by a PROT_NONE
++   page: even a single-lane tail overread/write causes a failure. Elsewhere a
++   canary protects each end. malloc/mmap preserve adequate base alignment. */
++static GuardedBuffer guarded_alloc(int N)
++{
++   GuardedBuffer b;
++   memset(&b, 0, sizeof(b));
++#if defined(__linux__)
++   {
++      long page = sysconf(_SC_PAGESIZE);
++      if (page > 0 && (size_t)(N + 1)*sizeof(int) <= (size_t)page) {
++         b.allocation_size = (size_t)page*2;
++         b.allocation = mmap(NULL, b.allocation_size, PROT_READ|PROT_WRITE,
++                            MAP_PRIVATE|MAP_ANONYMOUS, -1, 0);
++         if (b.allocation != MAP_FAILED &&
++             mprotect(b.allocation + page, (size_t)page, PROT_NONE) == 0) {
++            b.mapped = 1;
++            b.data = b.allocation + page - (size_t)N*sizeof(int);
++            b.guard = (int *)b.data - 1;
++            *b.guard = GUARD_VALUE;
++            return b;
++         }
++         if (b.allocation != MAP_FAILED)
++            munmap(b.allocation, b.allocation_size);
++      }
++   }
++#endif
++   b.allocation_size = (size_t)(N + 2)*sizeof(int);
++   b.allocation = malloc(b.allocation_size);
++   if (!b.allocation) die("allocation failed", N, 0, 0);
++   b.data = b.allocation + sizeof(int);
++   b.guard = (int *)b.allocation;
++   *b.guard = ((int *)b.data)[N] = GUARD_VALUE;
++   return b;
++}
++
++static void guarded_free(GuardedBuffer *b, int N)
++{
++   if (*b->guard != GUARD_VALUE ||
++       (!b->mapped && ((int *)b->data)[N] != GUARD_VALUE))
++      die("array boundary canary changed", N, 0, 0);
++#if defined(__linux__)
++   if (b->mapped) munmap(b->allocation, b->allocation_size);
++   else
++#endif
++      free(b->allocation);
++}
++
++static void fill_input(float *x, int N, int pattern)
++{
++   double energy = 0;
++   int j;
++   for (j = 0; j < N; j++) {
++      float value;
++      switch (pattern) {
++         case 0: value = 0; break;
++         case 1: value = j == N - 1 ? -1.f : 0.f; break;
++         case 2: value = j & 1 ? -1.f : 1.f; break;
++         case 3: value = (float)(j % 4 + 1); break;
++         case 4: value = j & 1 ? -1e-30f : 1e-30f; break;
++         case 5: value = j & 1 ? -0.f : 0.f; break;
++         case 6: value = j & 1 ? -0x1p-149f : 0x1p-149f; break;
++         case 7: value = j % 8 < 4 ? 0.5f : -0.5f; break;
++         default:
++            value = (float)((int)(next_random() & 0xffffU) - 32768)/32768.f;
++            break;
++      }
++      x[j] = value;
++      energy += (double)value*value;
++   }
++   if (energy > 0 && pattern != 4 && pattern != 6)
++      for (j = 0; j < N; j++) x[j] = (float)(x[j]/sqrt(energy));
++}
++
++static void check_vector(const float *original, const int *iy,
++                         float yy, int N, int K, int pattern)
++{
++   int j;
++   int pulses = 0;
++   double energy = 0;
++   for (j = 0; j < N; j++) {
++      if (iy[j] < -K || iy[j] > K) die("pulse outside bounds", N, K, pattern);
++      pulses += abs(iy[j]);
++      energy += (double)iy[j]*iy[j];
++      if ((original[j] < 0 && iy[j] > 0) || (original[j] >= 0 && iy[j] < 0))
++         die("wrong pulse sign", N, K, pattern);
++   }
++   if (pulses != K) die("L1 pulse sum differs from K", N, K, pattern);
++   if (!isfinite(yy) || (double)yy != energy)
++      die("returned energy differs from pulse energy", N, K, pattern);
++}
++
++static void test_case(int N, int K, int pattern)
++{
++   GuardedBuffer gx = guarded_alloc(N);
++   GuardedBuffer gy = guarded_alloc(N);
++   float *x = (float *)gx.data;
++   int *iy = (int *)gy.data;
++   float original[MAX_TEST_N], reference_x[MAX_TEST_N];
++   int reference_iy[MAX_TEST_N];
++   float yy, reference_yy;
++   int arch = opus_select_arch();
++   fill_input(x, N, pattern);
++   memcpy(original, x, (size_t)N*sizeof(float));
++   memcpy(reference_x, x, (size_t)N*sizeof(float));
++   reference_yy = op_pvq_search_neon(reference_x, reference_iy, K, N, arch);
++   check_vector(original, reference_iy, reference_yy, N, K, pattern);
++   if (have_sve) {
++      memset(iy, 0x39, (size_t)N*sizeof(int));
++      yy = op_pvq_search_sve256(x, iy, K, N, arch);
++      if (memcmp(original, x, (size_t)N*sizeof(float)))
++         die("SVE modified caller input", N, K, pattern);
++      check_vector(original, iy, yy, N, K, pattern);
++      if (memcmp(&yy, &reference_yy, sizeof(float)) ||
++          memcmp(iy, reference_iy, (size_t)N*sizeof(int)))
++         die("SVE differs from unchanged NEON reference", N, K, pattern);
++      direct_tests++;
++   }
++   memset(iy, 0x48, (size_t)N*sizeof(int));
++   yy = op_pvq_search(x, iy, K, N, arch);
++   if (memcmp(original, x, (size_t)N*sizeof(float)))
++      die("dispatcher modified caller input", N, K, pattern);
++   check_vector(original, iy, yy, N, K, pattern);
++   if (memcmp(&yy, &reference_yy, sizeof(float)) ||
++       memcmp(iy, reference_iy, (size_t)N*sizeof(int)))
++      die("dispatcher differs from NEON reference", N, K, pattern);
++   guarded_free(&gx, N);
++   guarded_free(&gy, N);
++   tests_run++;
++}
++
++static void test_tie_policy(void)
++{
++   float x[8];
++   int iy[8];
++   int j, N;
++   for (N = 4; N <= 8; N += 4) {
++      for (j = 0; j < N; j++) x[j] = 1.f;
++      op_pvq_search(x, iy, 1, N, opus_select_arch());
++      /* First winner within each lane, largest index across tied lanes. */
++      if (iy[3] != 1) die("SSE-compatible equal-score tie policy", N, 1, 2);
++   }
++   for (j = 0; j < 8; j++) x[j] = 0.f;
++   op_pvq_search(x, iy, 1, 8, opus_select_arch());
++   if (iy[0] != 1) die("all-zero low-K winner", 8, 1, 0);
++}
++
++static void test_projection_defence(void)
++{
++   int pattern, j;
++   for (pattern = 0; pattern < 4; pattern++) {
++      float x[8] = {0};
++      float original[8];
++      int iy[8];
++      float yy;
++      if (pattern == 0) x[3] = NAN;
++      if (pattern == 1) x[0] = INFINITY;
++      if (pattern == 2) x[0] = -INFINITY;
++      if (pattern == 3) for (j = 0; j < 8; j++) x[j] = 100.f;
++      memcpy(original, x, sizeof(x));
++      yy = op_pvq_search(x, iy, 128, 8, opus_select_arch());
++      if (memcmp(original, x, sizeof(x)))
++         die("projection defence modified input", 8, 128, pattern);
++      check_vector(original, iy, yy, 8, 128, pattern);
++      tests_run++;
++   }
++}
++
++static int set_vl(int bytes)
++{
++#if defined(__linux__) && defined(PR_SVE_SET_VL) && defined(PR_SVE_VL_LEN_MASK)
++   int actual = prctl(PR_SVE_SET_VL, bytes, 0, 0, 0);
++   if (actual < 0) return 0;
++   return (actual & PR_SVE_VL_LEN_MASK) == bytes;
++#else
++   (void)bytes;
++   return 0;
++#endif
++}
++
++/* VL is thread state. The same encoder arch state must not assume another
++   thread's VL, and changing VL after the first call must remain safe. */
++static void test_vl_changes(void)
++{
++   static const int sizes[] = {16, 32, 64};
++   int v, n, p;
++   if (!have_sve) return;
++   for (v = 0; v < 3; v++) {
++      if (!set_vl(sizes[v])) {
++         printf("SKIP: requested SVE VL=%d bytes unavailable\n", sizes[v]);
++         continue;
++      }
++      for (n = 7; n <= 35; n++)
++         for (p = 0; p < 8; p++) test_case(n, n/2 + p, p);
++      printf("PASS: same-thread VL change to %d bytes\n", sizes[v]);
++   }
++   if (requested_vl && !set_vl(requested_vl))
++      die("failed to restore requested VL", 0, 0, 0);
++}
++
++#if defined(__linux__)
++static void *thread_test(void *arg)
++{
++   int bytes = *(int *)arg;
++   int n, p;
++   if (!set_vl(bytes)) return (void *)1;
++   for (n = 7; n <= 19; n++)
++      for (p = 0; p < 8; p++) test_case(n, n + p, p);
++   return NULL;
++}
++
++static void test_thread_vl(void)
++{
++   int bytes;
++   if (!have_sve) return;
++   /* Sequential workers keep the deterministic PRNG/counters race-free while
++      checking that a new thread can select a VL unlike the parent thread. */
++   for (bytes = 16; bytes <= 64; bytes *= 2) {
++      pthread_t t;
++      void *result;
++      if (pthread_create(&t, NULL, thread_test, &bytes) != 0)
++         die("pthread_create failed", 0, 0, 0);
++      if (pthread_join(t, &result) != 0) die("pthread_join failed", 0, 0, 0);
++      if (result) printf("SKIP: child SVE VL=%d bytes unavailable\n", bytes);
++      else printf("PASS: child thread SVE VL=%d bytes\n", bytes);
++   }
++}
++#endif
++
++int main(int argc, char **argv)
++{
++   static const int lengths[] = {2, 3, 4, 5, 7, 8, 9, 10, 11, 12, 15, 16, 17,
++                                23, 24, 31, 32, 33, 40, 48, 64, 96, 128,
++                                176, 208, 255, 256};
++   int l, k, p;
++   ALLOC_STACK;
++#if defined(__linux__) && defined(HWCAP_SVE)
++   have_sve = !!(getauxval(AT_HWCAP) & HWCAP_SVE);
++#endif
++   if (argc > 1) requested_vl = atoi(argv[1]);
++   if (have_sve && requested_vl && !set_vl(requested_vl)) {
++      fprintf(stderr, "Requested VL=%d bytes unavailable\n", requested_vl);
++      return 77;
++   }
++   printf("HWCAP_SVE=%d; requested VL=%d bytes\n", have_sve, requested_vl);
++   test_tie_policy();
++   test_projection_defence();
++   for (l = 0; l < (int)(sizeof(lengths)/sizeof(lengths[0])); l++) {
++      int N = lengths[l];
++      int pulses[] = {0, 1, 2, 3, N/2, N/2 + 1, N - 1, N, N + 3,
++                      64, 128, 255, 512, 1024};
++      for (k = 0; k < (int)(sizeof(pulses)/sizeof(pulses[0])); k++)
++         for (p = 0; p < 30; p++) test_case(N, pulses[k], p);
++   }
++   test_vl_changes();
++#if defined(__linux__)
++   test_thread_vl();
++#endif
++   RESTORE_STACK;
++   printf("PASS: %d PVQ cases; exact NEON pulse/energy matches; "
++          "direct SVE calls=%d; exact-N guard pages enabled on Linux\n",
++          tests_run, direct_tests);
++   return EXIT_SUCCESS;
++}
++
++#else
++int main(void)
++{
++   puts("SKIP: floating-point ARM NEON + SVE256 build required");
++   return 77;
++}
++#endif
+diff --git a/celt/tests/test_encoder_dispatch_sve256.c b/celt/tests/test_encoder_dispatch_sve256.c
+new file mode 100644
+--- /dev/null
++++ b/celt/tests/test_encoder_dispatch_sve256.c
+@@ -0,0 +1,62 @@
++/* Public API integration and bitstream regression test, not a benchmark. */
++#include <opus.h>
++#include <stdio.h>
++#include <stdint.h>
++#include <stdlib.h>
++#include <string.h>
++#include <sys/auxv.h>
++#include <sys/prctl.h>
++#include <asm/hwcap.h>
++#include <linux/prctl.h>
++static unsigned long sve_entries, sve256_entries;
++static int reference_mode;
++float __real_op_pvq_search_sve256(float *,int *,int,int,int);
++float op_pvq_search_neon(float *,int *,int,int,int);
++float __wrap_op_pvq_search_sve256(float *x,int *iy,int k,int n,int arch) {
++  if(reference_mode) return op_pvq_search_neon(x,iy,k,n,arch);
++  sve_entries++;
++  if((prctl(PR_SVE_GET_VL,0,0,0,0)&PR_SVE_VL_LEN_MASK)==32 && n>=8) sve256_entries++;
++  return __real_op_pvq_search_sve256(x,iy,k,n,arch);
++}
++int main(int argc,char **argv) {
++  int have_sve=!!(getauxval(AT_HWCAP)&HWCAP_SVE);
++  int bytes=argc>1?atoi(argv[1]):0;
++  int channels,scenario,i,j,err;
++  uint32_t seed=42;
++  if(have_sve && bytes && (prctl(PR_SVE_SET_VL,bytes,0,0,0)&PR_SVE_VL_LEN_MASK)!=bytes) return 77;
++  for(channels=1;channels<=2;channels++) for(scenario=0;scenario<3;scenario++) {
++    const int framesize[3]={120,480,960};
++    OpusEncoder *enc[2]; OpusDecoder *dec[2];
++    opus_int16 pcm[1920],out[2][1920]; unsigned char packet[2][1500];
++    int frame=framesize[scenario],len[2];
++    for(i=0;i<2;i++) {
++      enc[i]=opus_encoder_create(48000,channels,OPUS_APPLICATION_RESTRICTED_CELT,&err);
++      if(!enc[i]||err) return 1;
++      dec[i]=opus_decoder_create(48000,channels,&err); if(!dec[i]||err)return 2;
++      if(opus_encoder_ctl(enc[i],OPUS_SET_BITRATE(64000*channels))||
++         opus_encoder_ctl(enc[i],OPUS_SET_COMPLEXITY(5)))return 3;
++    }
++    for(i=0;i<50;i++) {
++      opus_uint32 erange[2],drange[2];
++      for(j=0;j<frame*channels;j++) {seed=1664525U*seed+1013904223U;pcm[j]=(opus_int16)((int)(seed>>16)/4-8192);}
++      for(j=0;j<2;j++) {
++        reference_mode=j;
++        len[j]=opus_encode(enc[j],pcm,frame,packet[j],sizeof(packet[j]));
++        if(len[j]<=0||!(packet[j][0]&0x80))return 4;
++        if(opus_decode(dec[j],packet[j],len[j],out[j],frame,0)!=frame)return 5;
++        if(opus_encoder_ctl(enc[j],OPUS_GET_FINAL_RANGE(&erange[j]))||
++           opus_decoder_ctl(dec[j],OPUS_GET_FINAL_RANGE(&drange[j]))||erange[j]!=drange[j])return 6;
++      }
++      if(len[0]!=len[1]||memcmp(packet[0],packet[1],len[0])||
++         memcmp(out[0],out[1],frame*channels*sizeof(opus_int16))||erange[0]!=erange[1]) {
++        fprintf(stderr,"FAIL: SVE/NEON packet/PCM/range mismatch ch=%d frame=%d run=%d\n",channels,frame,i); return 7;
++      }
++    }
++    for(i=0;i<2;i++) {opus_encoder_destroy(enc[i]);opus_decoder_destroy(dec[i]);}
++  }
++  if(!have_sve && sve_entries) return 8;
++  if(have_sve && bytes==32 && !sve256_entries) return 9;
++  if((!have_sve||bytes==16||bytes==64)&&sve256_entries)return 10;
++  printf("PASS: 300 paired CELT frames mono/stereo 2.5/10/20ms; packets, PCM, final ranges exactly match NEON; HWCAP_SVE=%d VL=%d bytes entries=%lu actual256=%lu\n",have_sve,bytes,sve_entries,sve256_entries);
++  return 0;
++}
