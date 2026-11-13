@@ -1,0 +1,6 @@
+set(CMAKE_SYSTEM_NAME Linux)
+set(CMAKE_SYSTEM_PROCESSOR aarch64)
+set(CMAKE_C_COMPILER /workspace/pvq-neon-validation/toolchain/usr/bin/aarch64-linux-gnu-gcc)
+set(CMAKE_ASM_COMPILER /workspace/pvq-neon-validation/toolchain/usr/bin/aarch64-linux-gnu-gcc)
+set(CMAKE_SYSROOT /workspace/pvq-neon-validation/toolchain)
+set(CMAKE_CROSSCOMPILING_EMULATOR /workspace/pvq-neon-validation/toolchain/usr/bin/qemu-aarch64;-L;/workspace/pvq-neon-validation/toolchain/usr/aarch64-linux-gnu)

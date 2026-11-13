@@ -1,0 +1,22 @@
+Testing libopus unknown decoder. Random seed: 1898102542 (DBDC)
+  Starting 10 decoders...
+    opus_decoder_create(48000,1) OK. Copy OK.
+    opus_decoder_create(48000,2) OK. Copy OK.
+    opus_decoder_create(24000,1) OK. Copy OK.
+    opus_decoder_create(24000,2) OK. Copy OK.
+    opus_decoder_create(16000,1) OK. Copy OK.
+    opus_decoder_create(16000,2) OK. Copy OK.
+    opus_decoder_create(12000,1) OK. Copy OK.
+    opus_decoder_create(12000,2) OK. Copy OK.
+    opus_decoder_create( 8000,1) OK. Copy OK.
+    opus_decoder_create( 8000,2) OK. Copy OK.
+  dec[all] initial frame PLC OK.
+  dec[all] all 2-byte prefix for length 3 and PLC, all modes (64) OK.
+  dec[  3] all 3-byte prefix for length 4, mode 24 OK.
+  dec[  7] all 3-byte prefix for length 4, mode  4 OK.
+  dec[all] random packets, all modes (64), every 8th size from from 7 bytes to maximum OK.
+  dec[all] random packets, all mode pairs (4096), 113 bytes/frame OK.
+  dec[  3] random packets, all mode pairs (4096)*10, 105 bytes/frame OK.
+  dec[  0] pre-selected random packets OK.
+  Decoders stopped.
+  Testing opus_pcm_soft_clip... OK.

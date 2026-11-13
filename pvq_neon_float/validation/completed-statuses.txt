@@ -1,0 +1,9 @@
+unit8824=0
+ubsan_unit8824=0
+encoder_dispatch50frames2629calls=0
+rtcd_table=0
+existing_padding=0
+existing_api=0 (allocator-failure subgroup SKIPPED)
+existing_decode=0
+plain_hello=0
+asan_hello=-11 (ASan unavailable under this QEMU/runtime)

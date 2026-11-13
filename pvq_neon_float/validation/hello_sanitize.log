@@ -1,0 +1,3 @@
+$ /workspace/pvq-neon-validation/toolchain/usr/bin/qemu-aarch64 -L /workspace/pvq-neon-validation/toolchain/usr/aarch64-linux-gnu /workspace/pvq-neon-validation/hello_sanitize
+qemu: uncaught target signal 11 (Segmentation fault) - core dumped
+exit=-11

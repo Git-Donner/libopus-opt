@@ -1,0 +1,44 @@
+{
+  "base_commit": "05c87e25f7a7cda44650a370f1997748c2ababa5",
+  "files": [
+    {
+      "path": "celt/arm/vq_neon_intr.c",
+      "sha256": "689522b99cf2aa1a4bdb55137b7e9f9a2447ef3446da78873766ef24c8976565",
+      "kind": "new"
+    },
+    {
+      "path": "celt/arm/vq_arm.h",
+      "sha256": "d5ca8c39fde2480318a8f6d6daccf63156e56719e63da75e29f2042a0d6ccaaa",
+      "kind": "new"
+    },
+    {
+      "path": "celt/arm/arm_celt_map.c",
+      "sha256": "a6dc335a996f02efdadf47012d506d027b197c4b03d9bb44fbc705a1149e80d2",
+      "kind": "modified",
+      "base_sha256": "f45f4740a8f767c8c6120a4db6c290015bb99e816bab5de82cb0dd0011d5ea79"
+    },
+    {
+      "path": "celt/vq.h",
+      "sha256": "93ecfbfbfb00fd77614f0339b426f0e4900d7c789c348e97188bf9b753d16ac0",
+      "kind": "modified",
+      "base_sha256": "b6c4c1ff9eb7aeb71cef86fe18d33446c9b9a71b4e82f002840d7f13028195f5"
+    },
+    {
+      "path": "celt_sources.mk",
+      "sha256": "afbd23a510b813368922bfbeef5a0529bfc8361a71350c7ff90fe5fe72ed34af",
+      "kind": "modified",
+      "base_sha256": "21faeb8d73305d96ea4506a6122c27c2062d7d7745b05ffbaa5ad61e0df8af20"
+    },
+    {
+      "path": "celt_headers.mk",
+      "sha256": "8678aa7b1ab0f4955ebd8d06e227a372c5d1e03381d5c40a2ea4b0bc6082db30",
+      "kind": "modified",
+      "base_sha256": "bd47141b2439062105a47181f70517a2b378aacf330f593e7e2384e7e5cc6213"
+    },
+    {
+      "path": "celt/tests/test_unit_pvq_neon.c",
+      "sha256": "96f2c0e82bf8fefee7391cec277dbf0e293b8f40598b67ab34efdb9fb3ea1b5b",
+      "kind": "new"
+    }
+  ]
+}
