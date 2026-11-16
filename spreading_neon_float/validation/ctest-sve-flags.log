@@ -1,0 +1,9 @@
+Test project /workspace/pvq-sve256-validation/arm-o3
+    Start 1: test_unit_spreading_neon
+    Start 2: test_encoder_spreading_neon
+1/2 Test #2: test_encoder_spreading_neon ......   Passed   17.72 sec
+2/2 Test #1: test_unit_spreading_neon .........   Passed   31.83 sec
+
+100% tests passed out of 2
+
+Total Test time (real) =  31.84 sec

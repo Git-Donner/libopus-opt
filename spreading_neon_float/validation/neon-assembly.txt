@@ -1,0 +1,191 @@
+
+/workspace/spreading-neon-validation/arm-build/CMakeFiles/opus.dir/celt/arm/bands_neon_intr.c.o:     file format elf64-littleaarch64
+
+
+Disassembly of section .text:
+
+0000000000000000 <spreading_statistics_neon>:
+   0:	a9bc7bfd 	stp	x29, x30, [sp, #-64]!
+   4:	aa0003f1 	mov	x17, x0
+   8:	2a0503e8 	mov	w8, w5
+   c:	910003fd 	mov	x29, sp
+  10:	aa0103ed 	mov	x13, x1
+  14:	a90153f3 	stp	x19, x20, [sp, #16]
+  18:	2a0203ee 	mov	w14, w2
+  1c:	2a0303e0 	mov	w0, w3
+  20:	a9025bf5 	stp	x21, x22, [sp, #32]
+  24:	aa0603ef 	mov	x15, x6
+  28:	2a0403f5 	mov	w21, w4
+  2c:	b9403234 	ldr	w20, [x17, #48]
+  30:	aa0703f6 	mov	x22, x7
+  34:	f9401229 	ldr	x9, [x17, #32]
+  38:	5280001e 	mov	w30, #0x0                   	// #0
+  3c:	f94023f2 	ldr	x18, [sp, #64]
+  40:	1b147cb4 	mul	w20, w5, w20
+  44:	52800010 	mov	w16, #0x0                   	// #0
+  48:	7100001f 	cmp	w0, #0x0
+  4c:	5400020c 	b.gt	8c <spreading_statistics_neon+0x8c>
+  50:	11000610 	add	w16, w16, #0x1
+  54:	0b1403de 	add	w30, w30, w20
+  58:	6b15021f 	cmp	w16, w21
+  5c:	54ffff6b 	b.lt	48 <spreading_statistics_neon+0x48>  // b.tstop
+  60:	f94027e0 	ldr	x0, [sp, #72]
+  64:	5280000b 	mov	w11, #0x0                   	// #0
+  68:	b90002cb 	str	w11, [x22]
+  6c:	5280000a 	mov	w10, #0x0                   	// #0
+  70:	b900024a 	str	w10, [x18]
+  74:	52800013 	mov	w19, #0x0                   	// #0
+  78:	b9000013 	str	w19, [x0]
+  7c:	a94153f3 	ldp	x19, x20, [sp, #16]
+  80:	a9425bf5 	ldp	x21, x22, [sp, #32]
+  84:	a8c47bfd 	ldp	x29, x30, [sp], #64
+  88:	d65f03c0 	ret
+  8c:	93407c06 	sxtw	x6, w0
+  90:	90000000 	adrp	x0, 0 <spreading_statistics_neon>
+  94:	4f02f618 	fmov	v24.4s, #2.500000000000000000e-01
+  98:	91000927 	add	x7, x9, #0x2
+  9c:	3dc00017 	ldr	q23, [x0]
+  a0:	90000000 	adrp	x0, 0 <spreading_statistics_neon>
+  a4:	52800013 	mov	w19, #0x0                   	// #0
+  a8:	5280000a 	mov	w10, #0x0                   	// #0
+  ac:	3dc00016 	ldr	q22, [x0]
+  b0:	1e204314 	fmov	s20, s24
+  b4:	1e2042f3 	fmov	s19, s23
+  b8:	5280000b 	mov	w11, #0x0                   	// #0
+  bc:	a90363f7 	stp	x23, x24, [sp, #48]
+  c0:	1e2042d2 	fmov	s18, s22
+  c4:	93407fcc 	sxtw	x12, w30
+  c8:	d2800005 	mov	x5, #0x0                   	// #0
+  cc:	14000004 	b	dc <spreading_statistics_neon+0xdc>
+  d0:	910004a5 	add	x5, x5, #0x1
+  d4:	eb0600bf 	cmp	x5, x6
+  d8:	54000ae0 	b.eq	234 <spreading_statistics_neon+0x234>  // b.none
+  dc:	78e57920 	ldrsh	w0, [x9, x5, lsl #1]
+  e0:	78e578e1 	ldrsh	w1, [x7, x5, lsl #1]
+  e4:	4b000021 	sub	w1, w1, w0
+  e8:	1b087c21 	mul	w1, w1, w8
+  ec:	7100203f 	cmp	w1, #0x8
+  f0:	54ffff0d 	b.le	d0 <spreading_statistics_neon+0xd0>
+  f4:	1b087c04 	mul	w4, w0, w8
+  f8:	1e220035 	scvtf	s21, w1
+  fc:	4f00041e 	movi	v30.4s, #0x0
+ 100:	53027c22 	lsr	w2, w1, #2
+ 104:	51000442 	sub	w2, w2, #0x1
+ 108:	51001037 	sub	w23, w1, #0x4
+ 10c:	8b24c184 	add	x4, x12, w4, sxtw
+ 110:	4e0406b9 	dup	v25.4s, v21.s[0]
+ 114:	4ebe1fdd 	mov	v29.16b, v30.16b
+ 118:	8b0409a4 	add	x4, x13, x4, lsl #2
+ 11c:	91004083 	add	x3, x4, #0x10
+ 120:	aa0403e0 	mov	x0, x4
+ 124:	4ebe1fdc 	mov	v28.16b, v30.16b
+ 128:	8b225062 	add	x2, x3, w2, uxtw #4
+ 12c:	3cc1041f 	ldr	q31, [x0], #16
+ 130:	6e3fdfff 	fmul	v31.4s, v31.4s, v31.4s
+ 134:	6e39dfff 	fmul	v31.4s, v31.4s, v25.4s
+ 138:	6ebfe71a 	fcmgt	v26.4s, v24.4s, v31.4s
+ 13c:	6ebfe6fb 	fcmgt	v27.4s, v23.4s, v31.4s
+ 140:	6ebfe6df 	fcmgt	v31.4s, v22.4s, v31.4s
+ 144:	6eba879c 	sub	v28.4s, v28.4s, v26.4s
+ 148:	6ebb87bd 	sub	v29.4s, v29.4s, v27.4s
+ 14c:	6ebf87de 	sub	v30.4s, v30.4s, v31.4s
+ 150:	eb02001f 	cmp	x0, x2
+ 154:	54fffec1 	b.ne	12c <spreading_statistics_neon+0x12c>  // b.any
+ 158:	4eb1bb9f 	addv	s31, v28.4s
+ 15c:	121e76f7 	and	w23, w23, #0xfffffffc
+ 160:	110012f8 	add	w24, w23, #0x4
+ 164:	1e2603e3 	fmov	w3, s31
+ 168:	4eb1bbbf 	addv	s31, v29.4s
+ 16c:	1e2603e2 	fmov	w2, s31
+ 170:	4eb1bbdf 	addv	s31, v30.4s
+ 174:	1e2603e0 	fmov	w0, s31
+ 178:	6b18003f 	cmp	w1, w24
+ 17c:	5400032d 	b.le	1e0 <spreading_statistics_neon+0x1e0>
+ 180:	bc78789f 	ldr	s31, [x4, x24, lsl #2]
+ 184:	1e3f0bff 	fmul	s31, s31, s31
+ 188:	1e350bff 	fmul	s31, s31, s21
+ 18c:	1e3823f0 	fcmpe	s31, s24
+ 190:	54000804 	b.mi	290 <spreading_statistics_neon+0x290>  // b.first
+ 194:	110016f8 	add	w24, w23, #0x5
+ 198:	6b18003f 	cmp	w1, w24
+ 19c:	5400022d 	b.le	1e0 <spreading_statistics_neon+0x1e0>
+ 1a0:	bc78589f 	ldr	s31, [x4, w24, uxtw #2]
+ 1a4:	1e3f0bff 	fmul	s31, s31, s31
+ 1a8:	1e350bff 	fmul	s31, s31, s21
+ 1ac:	1e3423f0 	fcmpe	s31, s20
+ 1b0:	54000844 	b.mi	2b8 <spreading_statistics_neon+0x2b8>  // b.first
+ 1b4:	11001af7 	add	w23, w23, #0x6
+ 1b8:	6b17003f 	cmp	w1, w23
+ 1bc:	5400012d 	b.le	1e0 <spreading_statistics_neon+0x1e0>
+ 1c0:	bc77789f 	ldr	s31, [x4, x23, lsl #2]
+ 1c4:	1e3f0bff 	fmul	s31, s31, s31
+ 1c8:	1e350bff 	fmul	s31, s31, s21
+ 1cc:	1e3423f0 	fcmpe	s31, s20
+ 1d0:	540004c4 	b.mi	268 <spreading_statistics_neon+0x268>  // b.first
+ 1d4:	d503201f 	nop
+ 1d8:	d503201f 	nop
+ 1dc:	d503201f 	nop
+ 1e0:	3400012e 	cbz	w14, 204 <spreading_statistics_neon+0x204>
+ 1e4:	b9400a24 	ldr	w4, [x17, #8]
+ 1e8:	51000c84 	sub	w4, w4, #0x3
+ 1ec:	6b05009f 	cmp	w4, w5
+ 1f0:	540000ac 	b.gt	204 <spreading_statistics_neon+0x204>
+ 1f4:	0b030044 	add	w4, w2, w3
+ 1f8:	531b6884 	lsl	w4, w4, #5
+ 1fc:	1ac10884 	udiv	w4, w4, w1
+ 200:	0b130093 	add	w19, w4, w19
+ 204:	6b00043f 	cmp	w1, w0, lsl #1
+ 208:	b86579e4 	ldr	w4, [x15, x5, lsl #2]
+ 20c:	1a9fc7e0 	cset	w0, le
+ 210:	6b02043f 	cmp	w1, w2, lsl #1
+ 214:	1a80c400 	cinc	w0, w0, le
+ 218:	6b03043f 	cmp	w1, w3, lsl #1
+ 21c:	1a80c400 	cinc	w0, w0, le
+ 220:	910004a5 	add	x5, x5, #0x1
+ 224:	0b04014a 	add	w10, w10, w4
+ 228:	1b042c0b 	madd	w11, w0, w4, w11
+ 22c:	eb0600bf 	cmp	x5, x6
+ 230:	54fff561 	b.ne	dc <spreading_statistics_neon+0xdc>  // b.any
+ 234:	11000610 	add	w16, w16, #0x1
+ 238:	0b1403de 	add	w30, w30, w20
+ 23c:	6b1002bf 	cmp	w21, w16
+ 240:	54fff42c 	b.gt	c4 <spreading_statistics_neon+0xc4>
+ 244:	f94027e0 	ldr	x0, [sp, #72]
+ 248:	a94363f7 	ldp	x23, x24, [sp, #48]
+ 24c:	b90002cb 	str	w11, [x22]
+ 250:	b900024a 	str	w10, [x18]
+ 254:	b9000013 	str	w19, [x0]
+ 258:	a94153f3 	ldp	x19, x20, [sp, #16]
+ 25c:	a9425bf5 	ldp	x21, x22, [sp, #32]
+ 260:	a8c47bfd 	ldp	x29, x30, [sp], #64
+ 264:	d65f03c0 	ret
+ 268:	1e3323f0 	fcmpe	s31, s19
+ 26c:	11000463 	add	w3, w3, #0x1
+ 270:	54000044 	b.mi	278 <spreading_statistics_neon+0x278>  // b.first
+ 274:	17ffffdb 	b	1e0 <spreading_statistics_neon+0x1e0>
+ 278:	1e3223f0 	fcmpe	s31, s18
+ 27c:	11000442 	add	w2, w2, #0x1
+ 280:	54000044 	b.mi	288 <spreading_statistics_neon+0x288>  // b.first
+ 284:	17ffffd7 	b	1e0 <spreading_statistics_neon+0x1e0>
+ 288:	11000400 	add	w0, w0, #0x1
+ 28c:	17ffffd5 	b	1e0 <spreading_statistics_neon+0x1e0>
+ 290:	1e3723f0 	fcmpe	s31, s23
+ 294:	11000463 	add	w3, w3, #0x1
+ 298:	54000044 	b.mi	2a0 <spreading_statistics_neon+0x2a0>  // b.first
+ 29c:	17ffffbe 	b	194 <spreading_statistics_neon+0x194>
+ 2a0:	1e3623f0 	fcmpe	s31, s22
+ 2a4:	11000442 	add	w2, w2, #0x1
+ 2a8:	54000044 	b.mi	2b0 <spreading_statistics_neon+0x2b0>  // b.first
+ 2ac:	17ffffba 	b	194 <spreading_statistics_neon+0x194>
+ 2b0:	11000400 	add	w0, w0, #0x1
+ 2b4:	17ffffb8 	b	194 <spreading_statistics_neon+0x194>
+ 2b8:	1e3323f0 	fcmpe	s31, s19
+ 2bc:	11000463 	add	w3, w3, #0x1
+ 2c0:	54000044 	b.mi	2c8 <spreading_statistics_neon+0x2c8>  // b.first
+ 2c4:	17ffffbc 	b	1b4 <spreading_statistics_neon+0x1b4>
+ 2c8:	1e3223f0 	fcmpe	s31, s18
+ 2cc:	11000442 	add	w2, w2, #0x1
+ 2d0:	54000044 	b.mi	2d8 <spreading_statistics_neon+0x2d8>  // b.first
+ 2d4:	17ffffb8 	b	1b4 <spreading_statistics_neon+0x1b4>
+ 2d8:	11000400 	add	w0, w0, #0x1
+ 2dc:	17ffffb6 	b	1b4 <spreading_statistics_neon+0x1b4>

@@ -1,0 +1,20 @@
+[
+  {
+    "directory": "/workspace/spreading-neon-validation/arm-build",
+    "command": "/workspace/pvq-neon-validation/toolchain/usr/bin/aarch64-linux-gnu-gcc --sysroot=/workspace/pvq-neon-validation/toolchain -DDISABLE_DEBUG_FLOAT -DENABLE_HARDENING -DHAVE_ALLOCA_H -DHAVE_CONFIG_H -DHAVE_LRINT -DHAVE_LRINTF -DOPUS_ARM_MAY_HAVE_NEON -DOPUS_ARM_MAY_HAVE_NEON_INTR -DOPUS_ARM_PRESUME_NEON -DOPUS_ARM_PRESUME_NEON_INTR -DOPUS_BUILD -DOPUS_HAVE_RTCD -DVAR_ARRAYS -D_FORTIFY_SOURCE=2 -I/workspace/libopus-opt/include -I/workspace/spreading-neon-validation/arm-build -I/workspace/libopus-opt -I/workspace/libopus-opt/dnn -I/workspace/libopus-opt/celt -I/workspace/libopus-opt/silk -I/workspace/libopus-opt/silk/float -I/workspace/libopus-opt/silk/fixed -O3 -DNDEBUG -std=gnu99 -Wall -W -Wstrict-prototypes -Wextra -Wcast-align -Wnested-externs -Wshadow -fstack-protector-strong -o CMakeFiles/opus.dir/celt/bands.c.o -c /workspace/libopus-opt/celt/bands.c",
+    "file": "/workspace/libopus-opt/celt/bands.c",
+    "output": "/workspace/spreading-neon-validation/arm-build/CMakeFiles/opus.dir/celt/bands.c.o"
+  },
+  {
+    "directory": "/workspace/spreading-neon-validation/arm-build",
+    "command": "/workspace/pvq-neon-validation/toolchain/usr/bin/aarch64-linux-gnu-gcc --sysroot=/workspace/pvq-neon-validation/toolchain -DDISABLE_DEBUG_FLOAT -DENABLE_HARDENING -DHAVE_ALLOCA_H -DHAVE_CONFIG_H -DHAVE_LRINT -DHAVE_LRINTF -DOPUS_ARM_MAY_HAVE_NEON -DOPUS_ARM_MAY_HAVE_NEON_INTR -DOPUS_ARM_PRESUME_NEON -DOPUS_ARM_PRESUME_NEON_INTR -DOPUS_BUILD -DOPUS_HAVE_RTCD -DVAR_ARRAYS -D_FORTIFY_SOURCE=2 -I/workspace/libopus-opt/include -I/workspace/spreading-neon-validation/arm-build -I/workspace/libopus-opt -I/workspace/libopus-opt/dnn -I/workspace/libopus-opt/celt -I/workspace/libopus-opt/silk -I/workspace/libopus-opt/silk/float -I/workspace/libopus-opt/silk/fixed -O3 -DNDEBUG -std=gnu99 -Wall -W -Wstrict-prototypes -Wextra -Wcast-align -Wnested-externs -Wshadow -fstack-protector-strong -o CMakeFiles/opus.dir/celt/arm/arm_celt_map.c.o -c /workspace/libopus-opt/celt/arm/arm_celt_map.c",
+    "file": "/workspace/libopus-opt/celt/arm/arm_celt_map.c",
+    "output": "/workspace/spreading-neon-validation/arm-build/CMakeFiles/opus.dir/celt/arm/arm_celt_map.c.o"
+  },
+  {
+    "directory": "/workspace/spreading-neon-validation/arm-build",
+    "command": "/workspace/pvq-neon-validation/toolchain/usr/bin/aarch64-linux-gnu-gcc --sysroot=/workspace/pvq-neon-validation/toolchain -DDISABLE_DEBUG_FLOAT -DENABLE_HARDENING -DHAVE_ALLOCA_H -DHAVE_CONFIG_H -DHAVE_LRINT -DHAVE_LRINTF -DOPUS_ARM_MAY_HAVE_NEON -DOPUS_ARM_MAY_HAVE_NEON_INTR -DOPUS_ARM_PRESUME_NEON -DOPUS_ARM_PRESUME_NEON_INTR -DOPUS_BUILD -DOPUS_HAVE_RTCD -DVAR_ARRAYS -D_FORTIFY_SOURCE=2 -I/workspace/libopus-opt/include -I/workspace/spreading-neon-validation/arm-build -I/workspace/libopus-opt -I/workspace/libopus-opt/dnn -I/workspace/libopus-opt/celt -I/workspace/libopus-opt/silk -I/workspace/libopus-opt/silk/float -I/workspace/libopus-opt/silk/fixed -O3 -DNDEBUG -std=gnu99 -Wall -W -Wstrict-prototypes -Wextra -Wcast-align -Wnested-externs -Wshadow -fstack-protector-strong -o CMakeFiles/opus.dir/celt/arm/bands_neon_intr.c.o -c /workspace/libopus-opt/celt/arm/bands_neon_intr.c",
+    "file": "/workspace/libopus-opt/celt/arm/bands_neon_intr.c",
+    "output": "/workspace/spreading-neon-validation/arm-build/CMakeFiles/opus.dir/celt/arm/bands_neon_intr.c.o"
+  }
+]

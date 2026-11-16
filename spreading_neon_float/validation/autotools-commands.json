@@ -1,0 +1,118 @@
+{
+  "environment": {
+    "PATH": "/workspace/pvq-sve256-validation/host-tools/usr/bin:/home/agent/.local/bin:/opt/codex/runtimes/codex-primary-runtime/dependencies/bin/override:/opt/codex/runtimes/codex-primary-runtime/dependencies/python/bin:/opt/codex/runtimes/codex-primary-runtime/dependencies/node/bin:/opt/codex/runtimes/codex-primary-runtime/dependencies/bin:/opt/codex/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/home/agent/.local/bin:/opt/codex/runtimes/codex-primary-runtime/dependencies/bin/fallback",
+    "autom4te_perllibdir": "/workspace/pvq-sve256-validation/host-tools/usr/share/autoconf",
+    "AUTOCONF": "/workspace/pvq-sve256-validation/host-tools/usr/bin/autoconf",
+    "AUTOHEADER": "/workspace/pvq-sve256-validation/host-tools/usr/bin/autoheader",
+    "AUTOM4TE": "/workspace/pvq-sve256-validation/host-tools/usr/bin/autom4te",
+    "ACLOCAL": "/workspace/pvq-sve256-validation/host-tools/usr/bin/aclocal",
+    "AUTOMAKE": "/workspace/pvq-sve256-validation/host-tools/usr/bin/automake",
+    "LIBTOOLIZE": "/workspace/pvq-sve256-validation/host-tools/usr/bin/libtoolize",
+    "M4": "/workspace/pvq-sve256-validation/host-tools/usr/bin/m4",
+    "LD_LIBRARY_PATH": "/workspace/pvq-neon-validation/toolchain/usr/lib/x86_64-linux-gnu",
+    "CC": "/workspace/pvq-neon-validation/toolchain/usr/bin/aarch64-linux-gnu-gcc --sysroot=/workspace/pvq-neon-validation/toolchain",
+    "AR": "/workspace/pvq-neon-validation/toolchain/usr/bin/aarch64-linux-gnu-ar",
+    "RANLIB": "/workspace/pvq-neon-validation/toolchain/usr/bin/aarch64-linux-gnu-ranlib",
+    "CFLAGS": "-O3"
+  },
+  "commands": [
+    {
+      "name": "autotools-autoreconf",
+      "argv": [
+        "/workspace/pvq-sve256-validation/host-tools/usr/bin/autoreconf",
+        "-isf"
+      ],
+      "cwd": "/workspace/spreading-neon-validation/autotools-source"
+    },
+    {
+      "name": "autotools-configure",
+      "argv": [
+        "/workspace/spreading-neon-validation/autotools-source/configure",
+        "--host=aarch64-linux-gnu",
+        "--disable-shared",
+        "--enable-static",
+        "--disable-fixed-point",
+        "--disable-sve"
+      ],
+      "cwd": "/workspace/spreading-neon-validation/autotools-build"
+    },
+    {
+      "name": "autotools-build",
+      "argv": [
+        "make",
+        "-j8",
+        "libopus.la"
+      ],
+      "cwd": "/workspace/spreading-neon-validation/autotools-build"
+    },
+    {
+      "name": "autotools-compile-test_unit_spreading_neon",
+      "argv": [
+        "/workspace/pvq-neon-validation/toolchain/usr/bin/aarch64-linux-gnu-gcc",
+        "--sysroot=/workspace/pvq-neon-validation/toolchain",
+        "-O3",
+        "-std=gnu99",
+        "-Wall",
+        "-Wextra",
+        "-DHAVE_CONFIG_H",
+        "-I/workspace/spreading-neon-validation/autotools-build",
+        "-I/workspace/spreading-neon-validation/autotools-source/include",
+        "-I/workspace/spreading-neon-validation/autotools-source/celt",
+        "/workspace/spreading-neon-validation/autotools-source/celt/tests/test_unit_spreading_neon.c",
+        "/workspace/spreading-neon-validation/autotools-source/celt/tests/test_spreading_reference.c",
+        "/workspace/spreading-neon-validation/autotools-build/.libs/libopus.a",
+        "-lm",
+        "-o",
+        "/workspace/spreading-neon-validation/autotools-build/test_unit_spreading_neon"
+      ],
+      "cwd": "/workspace/spreading-neon-validation/autotools-build"
+    },
+    {
+      "name": "autotools-test_unit_spreading_neon",
+      "argv": [
+        "/workspace/pvq-neon-validation/toolchain/usr/bin/qemu-aarch64",
+        "-cpu",
+        "max,sve=off",
+        "-L",
+        "/workspace/pvq-neon-validation/toolchain/usr/aarch64-linux-gnu",
+        "/workspace/spreading-neon-validation/autotools-build/test_unit_spreading_neon"
+      ],
+      "cwd": "/workspace/spreading-neon-validation/autotools-build"
+    },
+    {
+      "name": "autotools-compile-test_encoder_spreading_neon",
+      "argv": [
+        "/workspace/pvq-neon-validation/toolchain/usr/bin/aarch64-linux-gnu-gcc",
+        "--sysroot=/workspace/pvq-neon-validation/toolchain",
+        "-O3",
+        "-std=gnu99",
+        "-Wall",
+        "-Wextra",
+        "-DHAVE_CONFIG_H",
+        "-I/workspace/spreading-neon-validation/autotools-build",
+        "-I/workspace/spreading-neon-validation/autotools-source/include",
+        "-I/workspace/spreading-neon-validation/autotools-source/celt",
+        "/workspace/spreading-neon-validation/autotools-source/celt/tests/test_encoder_spreading_neon.c",
+        "/workspace/spreading-neon-validation/autotools-source/celt/tests/test_spreading_reference.c",
+        "/workspace/spreading-neon-validation/autotools-build/.libs/libopus.a",
+        "-Wl,--wrap=spreading_statistics_neon",
+        "-lm",
+        "-o",
+        "/workspace/spreading-neon-validation/autotools-build/test_encoder_spreading_neon"
+      ],
+      "cwd": "/workspace/spreading-neon-validation/autotools-build"
+    },
+    {
+      "name": "autotools-test_encoder_spreading_neon",
+      "argv": [
+        "/workspace/pvq-neon-validation/toolchain/usr/bin/qemu-aarch64",
+        "-cpu",
+        "max,sve=off",
+        "-L",
+        "/workspace/pvq-neon-validation/toolchain/usr/aarch64-linux-gnu",
+        "/workspace/spreading-neon-validation/autotools-build/test_encoder_spreading_neon"
+      ],
+      "cwd": "/workspace/spreading-neon-validation/autotools-build"
+    }
+  ]
+}

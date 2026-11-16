@@ -1,0 +1,1091 @@
+diff --git a/CMakeLists.txt b/CMakeLists.txt
+--- a/CMakeLists.txt
++++ b/CMakeLists.txt
+@@ -737,6 +737,23 @@
+ if(BUILD_TESTING AND NOT BUILD_SHARED_LIBS)
+   enable_testing()
+ 
++  # Private float NEON statistics tests share the library's compile definitions.
++  if(COMPILER_SUPPORT_NEON AND NOT OPUS_FIXED_POINT AND NOT OPUS_DISABLE_INTRINSICS
++     AND CMAKE_SYSTEM_NAME STREQUAL "Linux")
++    get_target_property(_spread_test_definitions opus COMPILE_DEFINITIONS)
++    get_target_property(_spread_test_includes opus INCLUDE_DIRECTORIES)
++    foreach(_spread_test test_unit_spreading_neon test_encoder_spreading_neon)
++      add_executable(${_spread_test} celt/tests/${_spread_test}.c
++                     celt/tests/test_spreading_reference.c)
++      target_compile_definitions(${_spread_test} PRIVATE ${_spread_test_definitions})
++      target_include_directories(${_spread_test} PRIVATE ${_spread_test_includes})
++      target_link_libraries(${_spread_test} PRIVATE opus)
++      add_test(NAME ${_spread_test} COMMAND ${_spread_test})
++      set_tests_properties(${_spread_test} PROPERTIES SKIP_RETURN_CODE 77)
++    endforeach()
++    target_link_options(test_encoder_spreading_neon PRIVATE -Wl,--wrap=spreading_statistics_neon)
++  endif()
++
+   # Private SVE correctness tests inherit the exact private library macros.
+   if(OPUS_HAVE_SVE256)
+     find_package(Threads REQUIRED)
+diff --git a/Makefile.am b/Makefile.am
+--- a/Makefile.am
++++ b/Makefile.am
+@@ -351,7 +351,11 @@
+ endif
+ 
+ 
+-EXTRA_DIST = celt/tests/test_unit_pvq_sve256.c \
++EXTRA_DIST = celt/tests/test_unit_spreading_neon.c \
++             celt/tests/test_encoder_spreading_neon.c \
++             celt/tests/test_spreading_reference.c \
++             celt/tests/test_spreading_reference.h \
++             celt/tests/test_unit_pvq_sve256.c \
+              celt/tests/test_encoder_dispatch_sve256.c \
+              opus.pc.in \
+              scripts/osce/run_osce_tests.py \
+diff --git a/celt/bands.c b/celt/bands.c
+--- a/celt/bands.c
++++ b/celt/bands.c
+@@ -466,23 +466,16 @@
+    }
+ }
+ 
+-/* Decide whether we should spread the pulses in the current frame */
+-int spreading_decision(const CELTMode *m, const celt_norm *X, int *average,
+-      int last_decision, int *hf_average, int *tapset_decision, int update_hf,
+-      int end, int C, int M, const int *spread_weight)
+-{
+-   int i, c, N0;
+-   int sum = 0, nbBands=0;
++/* Collect the statistics separately so architecture selection happens once
++   per frame. State smoothing and hysteresis below remain shared. */
++void spreading_statistics_c(const CELTMode *m, const celt_norm *X,
++      int update_hf, int end, int C, int M, const int *spread_weight,
++      int *sum_out, int *nb_bands_out, int *hf_sum_out)
++{
++   int i, c;
++   int N0 = M*m->shortMdctSize;
++   int sum = 0, nbBands = 0, hf_sum = 0;
+    const opus_int16 * OPUS_RESTRICT eBands = m->eBands;
+-   int decision;
+-   int hf_sum=0;
+-
+-   celt_assert(end>0);
+-
+-   N0 = M*m->shortMdctSize;
+-
+-   if (M*(eBands[end]-eBands[end-1]) <= 8)
+-      return SPREAD_NONE;
+    c=0; do {
+       for (i=0;i<end;i++)
+       {
+@@ -506,14 +499,34 @@
+                tcount[2]++;
+          }
+ 
+-         /* Only include four last bands (8 kHz and up) */
+-         if (i>m->nbEBands-4)
++         /* Preserve the strict band bound and per-band integer truncation. */
++         if (update_hf && i>m->nbEBands-4)
+             hf_sum += celt_udiv(32*(tcount[1]+tcount[0]), N);
+          tmp = (2*tcount[2] >= N) + (2*tcount[1] >= N) + (2*tcount[0] >= N);
+          sum += tmp*spread_weight[i];
+          nbBands+=spread_weight[i];
+       }
+    } while (++c<C);
++   *sum_out = sum;
++   *nb_bands_out = nbBands;
++   *hf_sum_out = hf_sum;
++}
++
++/* Decide whether we should spread the pulses in the current frame */
++int spreading_decision(const CELTMode *m, const celt_norm *X, int *average,
++      int last_decision, int *hf_average, int *tapset_decision, int update_hf,
++      int end, int C, int M, const int *spread_weight, int arch)
++{
++   int sum = 0, nbBands = 0, hf_sum = 0;
++   int decision;
++   const opus_int16 *eBands = m->eBands;
++
++   celt_assert(end>0);
++   if (M*(eBands[end]-eBands[end-1]) <= 8)
++      return SPREAD_NONE;
++
++   spreading_statistics(m, X, update_hf, end, C, M, spread_weight,
++         &sum, &nbBands, &hf_sum, arch);
+ 
+    if (update_hf)
+    {
+diff --git a/celt/bands.h b/celt/bands.h
+--- a/celt/bands.h
++++ b/celt/bands.h
+@@ -72,7 +72,22 @@
+ 
+ int spreading_decision(const CELTMode *m, const celt_norm *X, int *average,
+       int last_decision, int *hf_average, int *tapset_decision, int update_hf,
+-      int end, int C, int M, const int *spread_weight);
++      int end, int C, int M, const int *spread_weight, int arch);
++
++/* Internal aggregate scan. The input need not have vector padding. */
++void spreading_statistics_c(const CELTMode *m, const celt_norm *X,
++      int update_hf, int end, int C, int M, const int *spread_weight,
++      int *sum, int *nb_bands, int *hf_sum);
++
++#if !defined(FIXED_POINT) && \
++    (defined(OPUS_ARM_MAY_HAVE_NEON_INTR) || defined(OPUS_ARM_PRESUME_NEON_INTR))
++#include "arm/bands_arm.h"
++#endif
++
++#ifndef OVERRIDE_SPREADING_STATISTICS
++#define spreading_statistics(m, X, update_hf, end, C, M, weight, sum, nb, hf, arch) \
++   ((void)(arch), spreading_statistics_c(m, X, update_hf, end, C, M, weight, sum, nb, hf))
++#endif
+ 
+ #ifdef MEASURE_NORM_MSE
+ void measure_norm_mse(const CELTMode *m, float *X, float *X0, float *bandE, float *bandE0, int M, int N, int C);
+diff --git a/celt/celt_encoder.c b/celt/celt_encoder.c
+--- a/celt/celt_encoder.c
++++ b/celt/celt_encoder.c
+@@ -2338,7 +2338,7 @@
+          {
+             st->spread_decision = spreading_decision(mode, X,
+                   &st->tonal_average, st->spread_decision, &st->hf_average,
+-                  &st->tapset_decision, pf_on&&!shortBlocks, effEnd, C, M, spread_weight);
++                  &st->tapset_decision, pf_on&&!shortBlocks, effEnd, C, M, spread_weight, st->arch);
+          }
+          /*printf("%d %d\n", st->tapset_decision, st->spread_decision);*/
+          /*printf("%f %d %f %d\n\n", st->analysis.tonality, st->spread_decision, st->analysis.tonality_slope, st->tapset_decision);*/
+diff --git a/celt/arm/arm_celt_map.c b/celt/arm/arm_celt_map.c
+--- a/celt/arm/arm_celt_map.c
++++ b/celt/arm/arm_celt_map.c
+@@ -35,8 +35,21 @@
+ #include "mdct.h"
+ #include "pitch.h"
+ #include "vq.h"
++#include "bands.h"
+ 
+ #if defined(OPUS_HAVE_RTCD)
++
++#if !defined(FIXED_POINT) && defined(OPUS_ARM_MAY_HAVE_NEON_INTR) && !defined(OPUS_ARM_PRESUME_NEON_INTR)
++void (*const SPREADING_STATISTICS_IMPL[OPUS_ARCHMASK + 1])(
++      const CELTMode *, const celt_norm *, int, int, int, int,
++      const int *, int *, int *, int *) = {
++   spreading_statistics_c,    /* ARMv4 */
++   spreading_statistics_c,    /* EDSP */
++   spreading_statistics_c,    /* Media */
++   spreading_statistics_neon, /* NEON */
++   spreading_statistics_neon  /* DOTPROD */
++};
++#endif
+ 
+ # if !defined(DISABLE_FLOAT_API)
+ #  if defined(OPUS_ARM_MAY_HAVE_NEON_INTR) && !defined(OPUS_ARM_PRESUME_NEON_INTR)
+diff --git a/celt/arm/bands_arm.h b/celt/arm/bands_arm.h
+new file mode 100644
+--- /dev/null
++++ b/celt/arm/bands_arm.h
+@@ -0,0 +1,49 @@
++/* Copyright (c) 2016 Jean-Marc Valin */
++/*
++   Redistribution and use in source and binary forms, with or without
++   modification, are permitted provided that the following conditions
++   are met:
++
++   - Redistributions of source code must retain the above copyright
++   notice, this list of conditions and the following disclaimer.
++
++   - Redistributions in binary form must reproduce the above copyright
++   notice, this list of conditions and the following disclaimer in the
++   documentation and/or other materials provided with the distribution.
++
++   THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
++   ``AS IS'' AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
++   LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
++   A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER
++   OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL,
++   EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO,
++   PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR
++   PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF
++   LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING
++   NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
++   SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
++*/
++
++#ifndef BANDS_ARM_H
++#define BANDS_ARM_H
++
++#include "cpu_support.h"
++
++void spreading_statistics_neon(const CELTMode *m, const celt_norm *X,
++      int update_hf, int end, int C, int M, const int *spread_weight,
++      int *sum, int *nb_bands, int *hf_sum);
++
++#if defined(OPUS_ARM_PRESUME_NEON_INTR)
++#define OVERRIDE_SPREADING_STATISTICS (1)
++#define spreading_statistics(m, X, update_hf, end, C, M, weight, sum, nb, hf, arch) \
++   ((void)(arch), spreading_statistics_neon(m, X, update_hf, end, C, M, weight, sum, nb, hf))
++#elif defined(OPUS_HAVE_RTCD)
++#define OVERRIDE_SPREADING_STATISTICS (1)
++extern void (*const SPREADING_STATISTICS_IMPL[OPUS_ARCHMASK + 1])(
++      const CELTMode *, const celt_norm *, int, int, int, int,
++      const int *, int *, int *, int *);
++#define spreading_statistics(m, X, update_hf, end, C, M, weight, sum, nb, hf, arch) \
++   ((*SPREADING_STATISTICS_IMPL[(arch) & OPUS_ARCHMASK])(m, X, update_hf, end, C, M, weight, sum, nb, hf))
++#endif
++
++#endif /* BANDS_ARM_H */
+diff --git a/celt/arm/bands_neon_intr.c b/celt/arm/bands_neon_intr.c
+new file mode 100644
+--- /dev/null
++++ b/celt/arm/bands_neon_intr.c
+@@ -0,0 +1,108 @@
++/* Copyright (c) 2007-2008 CSIRO
++   Copyright (c) 2007-2009 Xiph.Org Foundation
++   Copyright (c) 2008-2009 Gregory Maxwell
++   Written by Jean-Marc Valin and Gregory Maxwell */
++/*
++   Redistribution and use in source and binary forms, with or without
++   modification, are permitted provided that the following conditions
++   are met:
++
++   - Redistributions of source code must retain the above copyright
++   notice, this list of conditions and the following disclaimer.
++
++   - Redistributions in binary form must reproduce the above copyright
++   notice, this list of conditions and the following disclaimer in the
++   documentation and/or other materials provided with the distribution.
++
++   THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
++   ``AS IS'' AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
++   LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
++   A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER
++   OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL,
++   EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO,
++   PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR
++   PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF
++   LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING
++   NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
++   SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
++*/
++
++#ifdef HAVE_CONFIG_H
++#include "config.h"
++#endif
++
++#ifndef FIXED_POINT
++#include <arm_neon.h>
++#include "bands.h"
++
++static OPUS_INLINE int spreading_sum_u32(uint32x4_t count)
++{
++#if defined(__aarch64__)
++   return (int)vaddvq_u32(count);
++#else
++   uint32x2_t sum = vpadd_u32(vget_low_u32(count), vget_high_u32(count));
++   sum = vpadd_u32(sum, sum);
++   return (int)vget_lane_u32(sum, 0);
++#endif
++}
++
++void spreading_statistics_neon(const CELTMode *m, const celt_norm *X,
++      int update_hf, int end, int C, int M, const int *spread_weight,
++      int *sum, int *nb_bands, int *hf_sum)
++{
++   int c, i;
++   int sum_acc = 0, nb_bands_acc = 0, hf_sum_acc = 0;
++   const int N0 = M*m->shortMdctSize;
++   const opus_int16 * OPUS_RESTRICT eBands = m->eBands;
++   const float32x4_t threshold0 = vdupq_n_f32(0.25f);
++   const float32x4_t threshold1 = vdupq_n_f32(0.0625f);
++   const float32x4_t threshold2 = vdupq_n_f32(0.015625f);
++
++   c=0; do {
++      for (i=0;i<end;i++)
++      {
++         int j, tmp;
++         int tcount[3];
++         const int N = M*(eBands[i+1]-eBands[i]);
++         const celt_norm * OPUS_RESTRICT x = X+M*eBands[i]+c*N0;
++         float32x4_t n4;
++         uint32x4_t count0, count1, count2;
++         if (N<=8)
++            continue;
++         n4 = vdupq_n_f32((float)N);
++         count0 = count1 = count2 = vdupq_n_u32(0);
++         for (j=0;j+3<N;j+=4)
++         {
++            float32x4_t x4 = vld1q_f32(x+j);
++            float32x4_t x2N = vmulq_f32(vmulq_f32(x4, x4), n4);
++            /* A true comparison is UINT32_MAX, so subtraction adds one. */
++            count0 = vsubq_u32(count0, vcltq_f32(x2N, threshold0));
++            count1 = vsubq_u32(count1, vcltq_f32(x2N, threshold1));
++            count2 = vsubq_u32(count2, vcltq_f32(x2N, threshold2));
++         }
++         tcount[0] = spreading_sum_u32(count0);
++         tcount[1] = spreading_sum_u32(count1);
++         tcount[2] = spreading_sum_u32(count2);
++         for (;j<N;j++)
++         {
++            float x2N = (x[j]*x[j])*(float)N;
++            if (x2N < 0.25f)
++               tcount[0]++;
++            if (x2N < 0.0625f)
++               tcount[1]++;
++            if (x2N < 0.015625f)
++               tcount[2]++;
++         }
++         if (update_hf && i>m->nbEBands-4)
++            hf_sum_acc += celt_udiv(32*(tcount[1]+tcount[0]), N);
++         tmp = (2*tcount[2] >= N) + (2*tcount[1] >= N) + (2*tcount[0] >= N);
++         sum_acc += tmp*spread_weight[i];
++         nb_bands_acc += spread_weight[i];
++      }
++   } while (++c<C);
++   *sum = sum_acc;
++   *nb_bands = nb_bands_acc;
++   *hf_sum = hf_sum_acc;
++}
++
++#endif /* !FIXED_POINT */
+diff --git a/celt_sources.mk b/celt_sources.mk
+--- a/celt_sources.mk
++++ b/celt_sources.mk
+@@ -54,7 +54,8 @@
+ celt/arm/celt_mdct_tx.c \
+ celt/arm/celt_tx_neon.S \
+ celt/arm/pitch_neon_intr.c \
+-celt/arm/vq_neon_intr.c
++celt/arm/vq_neon_intr.c \
++celt/arm/bands_neon_intr.c
+ 
+ CELT_SOURCES_ARM_SVE256_INTR = \
+ celt/arm/vq_sve256.c
+diff --git a/celt_headers.mk b/celt_headers.mk
+--- a/celt_headers.mk
++++ b/celt_headers.mk
+@@ -42,6 +42,7 @@
+ celt/arm/mathops_arm.h \
+ celt/arm/pitch_arm.h \
+ celt/arm/vq_arm.h \
++celt/arm/bands_arm.h \
+ celt/arm/fft_arm.h \
+ celt/arm/mdct_arm.h \
+ celt/mips/celt_mipsr1.h \
+diff --git a/celt/tests/test_unit_spreading_neon.c b/celt/tests/test_unit_spreading_neon.c
+new file mode 100644
+--- /dev/null
++++ b/celt/tests/test_unit_spreading_neon.c
+@@ -0,0 +1,367 @@
++/* Exact equivalence and boundary tests for the float NEON spreading scan.
++   This test is intentionally separate from the frozen reference implementation.
++   It is a correctness test, not a performance benchmark. */
++#ifndef _GNU_SOURCE
++#define _GNU_SOURCE
++#endif
++#ifdef HAVE_CONFIG_H
++#include "config.h"
++#endif
++
++#include <float.h>
++#include <math.h>
++#include <stdint.h>
++#include <stdio.h>
++#include <stdlib.h>
++#include <string.h>
++#include "bands.h"
++#include "cpu_support.h"
++#include "test_spreading_reference.h"
++
++#if !defined(FIXED_POINT) && defined(OPUS_ARM_MAY_HAVE_NEON_INTR) && !defined(FUZZING)
++
++#if defined(__linux__)
++#include <sys/mman.h>
++#include <unistd.h>
++#endif
++
++#define PATTERNS 32
++#define CANARY 0x5a319c27U
++
++typedef struct {
++   unsigned char *allocation;
++   size_t bytes;
++   float *x;
++   uint32_t *before;
++   int mapped;
++   int length;
++} GuardedInput;
++
++typedef struct {
++   int sum, nb_bands, hf_sum;
++} Statistics;
++
++typedef struct {
++   int average, hf_average, tapset, last;
++} History;
++
++static uint32_t random_state = 0x9e3779b9U;
++static unsigned long cases_run;
++static unsigned long guarded_sequences;
++static int runtime_arch;
++static int context_N, context_C, context_M, context_end, context_pattern;
++
++static void fail(const char *what)
++{
++   fprintf(stderr, "FAIL: %s (N=%d C=%d M=%d end=%d pattern=%d)\n",
++         what, context_N, context_C, context_M, context_end, context_pattern);
++   exit(EXIT_FAILURE);
++}
++
++static uint32_t next_random(void)
++{
++   random_state ^= random_state << 13;
++   random_state ^= random_state >> 17;
++   random_state ^= random_state << 5;
++   return random_state;
++}
++
++/* The very last float is adjacent to a protected page. There is no readable
++   SIMD padding. The single-band modes make this the end of the scanned band,
++   including the second channel in stereo. Varying N covers every alignment. */
++static GuardedInput guarded_alloc(int length)
++{
++   GuardedInput b;
++   size_t data_bytes = (size_t)length*sizeof(float);
++   memset(&b, 0, sizeof(b));
++   b.length = length;
++#if defined(__linux__)
++   {
++      long page = sysconf(_SC_PAGESIZE);
++      if (page > 0)
++      {
++         size_t accessible = (data_bytes + sizeof(uint32_t) + page-1)/page*page;
++         b.bytes = accessible + 2*page;
++         b.allocation = mmap(NULL, b.bytes, PROT_READ|PROT_WRITE,
++               MAP_PRIVATE|MAP_ANONYMOUS, -1, 0);
++         if (b.allocation != MAP_FAILED)
++         {
++            if (mprotect(b.allocation, (size_t)page, PROT_NONE) == 0 &&
++                  mprotect(b.allocation + page + accessible, (size_t)page,
++                     PROT_NONE) == 0)
++            {
++               b.mapped = 1;
++               b.x = (float *)(b.allocation + page + accessible - data_bytes);
++               b.before = (uint32_t *)b.x - 1;
++               *b.before = CANARY;
++               guarded_sequences++;
++               return b;
++            }
++            munmap(b.allocation, b.bytes);
++         }
++      }
++   }
++#endif
++   b.bytes = data_bytes + 2*sizeof(uint32_t);
++   b.allocation = (unsigned char *)malloc(b.bytes);
++   if (!b.allocation) fail("input allocation");
++   b.x = (float *)(b.allocation + sizeof(uint32_t));
++   b.before = (uint32_t *)b.allocation;
++   *b.before = CANARY;
++   memcpy(b.x + length, b.before, sizeof(uint32_t));
++   return b;
++}
++
++static void guarded_free(GuardedInput *b)
++{
++   uint32_t after = CANARY;
++   if (!b->mapped) memcpy(&after, b->x + b->length, sizeof(after));
++   if (*b->before != CANARY || after != CANARY) fail("input canary changed");
++#if defined(__linux__)
++   if (b->mapped) munmap(b->allocation, b->bytes);
++   else
++#endif
++      free(b->allocation);
++}
++
++static void fill_band(float *x, int N, int pattern)
++{
++   static const float thresholds[3] = {.25f, .0625f, .015625f};
++   double energy = 0;
++   int j;
++   for (j = 0; j < N; j++)
++   {
++      float v;
++      switch (pattern)
++      {
++         case 0: v = 0.f; break;
++         case 1: v = j&1 ? -0.f : 0.f; break;
++         case 2: v = 1.f/sqrtf((float)N); break;
++         case 3: v = j == N-1 ? -1.f : 0.f; break;
++         case 4: v = (j&1 ? -1.f : 1.f)/sqrtf((float)N); break;
++         case 5: v = j&1 ? -FLT_MIN : FLT_MIN; break;
++         case 6: v = j&1 ? -ldexpf(1.f, -149) : ldexpf(1.f, -149); break;
++         case 7: v = j%3 == 0 ? NAN : (j%3 == 1 ? INFINITY : -INFINITY); break;
++         case 8: v = j == N-1 ? NAN : 0.f; break;
++         case 9: v = INFINITY; break;
++         case 10: v = -INFINITY; break;
++         case 11:
++         case 12:
++            v = ((int)(next_random() & 0xffffU) - 32768)/32768.f;
++            break;
++         case 13: v = j&1 ? FLT_MAX : -FLT_MAX; break;
++         default:
++         {
++            int threshold = (pattern-14)/4;
++            int variant = (pattern-14)%4;
++            float center;
++            /* Last six patterns straddle the half-band count that controls
++               the integer majority comparison, including odd-length tails. */
++            if (threshold >= 3)
++            {
++               int boundary = pattern-26;
++               int low_count = N/2 + (boundary&1);
++               center = sqrtf(thresholds[boundary/2]/N);
++               v = nextafterf(center, j < low_count ? 0.f : INFINITY);
++            } else {
++               center = sqrtf(thresholds[threshold]/N);
++               if (variant == 0) v = nextafterf(center, 0.f);
++               else if (variant == 1) v = center;
++               else if (variant == 2) v = nextafterf(center, INFINITY);
++               else v = j%3 == 0 ? nextafterf(center, 0.f) :
++                     (j%3 == 1 ? center : nextafterf(center, INFINITY));
++            }
++            if (j&1) v = -v;
++            break;
++         }
++      }
++      x[j] = v;
++      if (pattern == 11) energy += (double)v*v;
++   }
++   if (pattern == 11 && energy > 0)
++      for (j = 0; j < N; j++) x[j] = (float)(x[j]/sqrt(energy));
++}
++
++static void fill_input(float *x, const CELTMode *m, int C, int M,
++      int end, int pattern)
++{
++   int i, c;
++   /* Prefixes, gaps and the unused top of standard modes must stay ignored. */
++   for (i = 0; i < C*M*m->shortMdctSize; i++) x[i] = FLT_MAX;
++   for (c = 0; c < C; c++)
++      for (i = 0; i < end; i++)
++         fill_band(x + c*M*m->shortMdctSize + M*m->eBands[i],
++               M*(m->eBands[i+1]-m->eBands[i]), pattern);
++}
++
++static void check_statistics(const CELTMode *m, const float *x, int C, int M,
++      int end, int update_hf, const int *weights)
++{
++   Statistics scalar = {-991, -992, -993};
++   Statistics neon = {-994, -995, -996};
++   Statistics original = {-997, -998, -999};
++   spreading_statistics_c(m, x, update_hf, end, C, M, weights,
++         &scalar.sum, &scalar.nb_bands, &scalar.hf_sum);
++   spreading_statistics_neon(m, x, update_hf, end, C, M, weights,
++         &neon.sum, &neon.nb_bands, &neon.hf_sum);
++   spreading_statistics_original(m, x, update_hf, end, C, M, weights,
++         &original.sum, &original.nb_bands, &original.hf_sum);
++   if (scalar.sum != neon.sum || scalar.nb_bands != neon.nb_bands ||
++         scalar.hf_sum != neon.hf_sum || scalar.sum != original.sum ||
++         scalar.nb_bands != original.nb_bands || scalar.hf_sum != original.hf_sum)
++   {
++      fprintf(stderr, "aggregates C=%d/%d/%d NEON=%d/%d/%d original=%d/%d/%d update_hf=%d\n",
++            scalar.sum, scalar.nb_bands, scalar.hf_sum,
++            neon.sum, neon.nb_bands, neon.hf_sum,
++            original.sum, original.nb_bands, original.hf_sum, update_hf);
++      fail("integer scan aggregates differ");
++   }
++}
++
++static void check_decision(const CELTMode *m, const float *x, int C, int M,
++      int end, int update_hf, const int *weights, History history[3])
++{
++   int path;
++   for (path = 0; path < 3; path++)
++   {
++      History *h = &history[path];
++      if (path == 2)
++         h->last = spreading_decision_original(m, x, &h->average, h->last,
++               &h->hf_average, &h->tapset, update_hf, end, C, M, weights);
++      else
++         /* arch=0 exercises scalar dispatch only in a non-presumed build.
++            Presumed-NEON builds intentionally select NEON for both values. */
++         h->last = spreading_decision(m, x, &h->average, h->last,
++               &h->hf_average, &h->tapset, update_hf, end, C, M, weights,
++               path == 0 ? 0 : runtime_arch);
++   }
++   for (path = 0; path < 2; path++)
++   {
++      const History *h = &history[path];
++      const History *r = &history[2];
++      if (h->last != r->last || h->average != r->average ||
++            h->hf_average != r->hf_average || h->tapset != r->tapset)
++      {
++         fprintf(stderr, "decision/state path=%d: %d/%d/%d/%d original=%d/%d/%d/%d update_hf=%d\n",
++               path, h->last, h->average, h->hf_average, h->tapset,
++               r->last, r->average, r->hf_average, r->tapset, update_hf);
++         fail("full decision or history differs from frozen original");
++      }
++   }
++}
++
++static void run_sequence(const CELTMode *m, int C, int M, int end,
++      int weight_scheme, int seed)
++{
++   static const int averages[8] = {0, 79, 80, 255, 256, 383, 384, 768};
++   static const int hf_averages[6] = {0, 18, 19, 22, 23, 64};
++   GuardedInput input = guarded_alloc(C*M*m->shortMdctSize);
++   float *snapshot = (float *)malloc((size_t)input.length*sizeof(float));
++   History histories[2][3];
++   int weights[21];
++   int i, path, update_hf, pattern;
++   context_N = M*(m->eBands[end]-m->eBands[end-1]);
++   context_C = C;
++   context_M = M;
++   context_end = end;
++   if (!snapshot) fail("snapshot allocation");
++   for (i = 0; i < end; i++)
++   {
++      if (weight_scheme == 0) weights[i] = 1;
++      else if (weight_scheme == 1) weights[i] = 32;
++      else if (weight_scheme == 2) weights[i] = 1 + (i*7+seed)%32;
++      else weights[i] = i == end-1 ? 1+seed%32 : 0;
++   }
++   for (update_hf = 0; update_hf <= 1; update_hf++)
++      for (path = 0; path < 3; path++)
++      {
++         History *h = &histories[update_hf][path];
++         h->average = averages[seed%8];
++         h->hf_average = hf_averages[seed%6];
++         h->tapset = seed%3;
++         h->last = seed%4;
++      }
++   for (pattern = 0; pattern < PATTERNS; pattern++)
++   {
++      context_pattern = pattern;
++      fill_input(input.x, m, C, M, end, pattern);
++      memcpy(snapshot, input.x, (size_t)input.length*sizeof(float));
++      for (update_hf = 0; update_hf <= 1; update_hf++)
++      {
++         check_statistics(m, input.x, C, M, end, update_hf, weights);
++         check_decision(m, input.x, C, M, end, update_hf, weights,
++               histories[update_hf]);
++         cases_run++;
++      }
++      if (memcmp(snapshot, input.x, (size_t)input.length*sizeof(float)))
++         fail("scan or decision modified const input");
++   }
++   free(snapshot);
++   guarded_free(&input);
++}
++
++static void single_band_modes(void)
++{
++   int N, C, prefix;
++   for (N = 1; N <= 209; N++)
++      for (C = 1; C <= 2; C++)
++         for (prefix = 0; prefix < 4; prefix++)
++         {
++            CELTMode mode;
++            opus_int16 bands[2];
++            memset(&mode, 0, sizeof(mode));
++            bands[0] = (opus_int16)prefix;
++            bands[1] = (opus_int16)(prefix+N);
++            mode.nbEBands = mode.effEBands = 1;
++            mode.shortMdctSize = prefix+N;
++            mode.eBands = bands;
++            run_sequence(&mode, C, 1, 1, 2, N+prefix+C);
++         }
++}
++
++static void standard_modes(void)
++{
++   static const opus_int16 bands[22] = {
++      0, 1, 2, 3, 4, 5, 6, 7, 8, 10, 12, 14, 16, 20, 24, 28,
++      34, 40, 48, 60, 78, 100
++   };
++   CELTMode mode;
++   int C, M, end, scheme;
++   memset(&mode, 0, sizeof(mode));
++   mode.eBands = bands;
++   mode.nbEBands = mode.effEBands = 21;
++   mode.shortMdctSize = 120;
++   for (M = 1; M <= 8; M *= 2)
++      for (C = 1; C <= 2; C++)
++         for (end = 1; end <= 21; end++)
++            for (scheme = 0; scheme < 4; scheme++)
++               run_sequence(&mode, C, M, end, scheme, end+M+C+scheme);
++}
++
++int main(void)
++{
++   runtime_arch = opus_select_arch();
++#if defined(OPUS_HAVE_RTCD) && !defined(OPUS_ARM_PRESUME_NEON_INTR)
++   if (runtime_arch < 3)
++   {
++      puts("SKIP: CPU does not support ARM NEON");
++      return 77;
++   }
++#endif
++   single_band_modes();
++   standard_modes();
++#if defined(__linux__)
++   if (!guarded_sequences) fail("no guard-page allocation succeeded");
++#endif
++   printf("PASS: %lu spreading cases; C/NEON/original aggregates and dispatched/original decisions/histories exact; %lu guard-page sequences\n",
++         cases_run, guarded_sequences);
++   return EXIT_SUCCESS;
++}
++
++#else
++int main(void)
++{
++   puts("SKIP: floating-point ARM NEON build without FUZZING required");
++   return 77;
++}
++#endif
+diff --git a/celt/tests/test_encoder_spreading_neon.c b/celt/tests/test_encoder_spreading_neon.c
+new file mode 100644
+--- /dev/null
++++ b/celt/tests/test_encoder_spreading_neon.c
+@@ -0,0 +1,143 @@
++/* Public API regression test for the floating-point NEON spreading scan.
++   Link with --wrap=spreading_statistics_neon and test_spreading_reference.c.
++   The paired encoders differ only in the implementation of that scan. */
++#ifdef HAVE_CONFIG_H
++#include "config.h"
++#endif
++
++#include <stdio.h>
++#include <stdlib.h>
++#include <string.h>
++#include "opus.h"
++#include "bands.h"
++#include "cpu_support.h"
++#include "test_spreading_reference.h"
++
++#if !defined(FIXED_POINT) && defined(OPUS_ARM_MAY_HAVE_NEON_INTR) && !defined(FUZZING)
++
++static int reference_mode;
++static unsigned long neon_calls, original_calls;
++static unsigned long neon_coefficients, original_coefficients;
++
++void __real_spreading_statistics_neon(const CELTMode *m, const celt_norm *X,
++      int update_hf, int end, int C, int M, const int *spread_weight,
++      int *sum, int *nb_bands, int *hf_sum);
++
++void __wrap_spreading_statistics_neon(const CELTMode *m, const celt_norm *X,
++      int update_hf, int end, int C, int M, const int *spread_weight,
++      int *sum, int *nb_bands, int *hf_sum)
++{
++   unsigned long coefficients = 0;
++   int i;
++   for (i = 0; i < end; i++) {
++      int N = M*(m->eBands[i+1] - m->eBands[i]);
++      if (N > 8) coefficients += (unsigned long)N*C;
++   }
++   if (reference_mode) {
++      original_calls++;
++      original_coefficients += coefficients;
++      spreading_statistics_original(m, X, update_hf, end, C, M, spread_weight,
++                                    sum, nb_bands, hf_sum);
++   } else {
++      neon_calls++;
++      neon_coefficients += coefficients;
++      __real_spreading_statistics_neon(m, X, update_hf, end, C, M,
++                                      spread_weight, sum, nb_bands, hf_sum);
++   }
++}
++
++static void fail(const char *message, int channels, int frame_size, int frame)
++{
++   fprintf(stderr, "FAIL: %s (channels=%d frame_size=%d frame=%d)\n",
++           message, channels, frame_size, frame);
++   exit(EXIT_FAILURE);
++}
++
++int main(void)
++{
++   static const int frame_sizes[] = {120, 480, 960};
++   opus_uint32 seed = 42;
++   int channels, scenario;
++#if defined(OPUS_HAVE_RTCD)
++   if (opus_select_arch() < OPUS_ARCH_ARM_NEON) {
++      puts("SKIP: CPU does not support NEON");
++      return 77;
++   }
++#endif
++   for (channels = 1; channels <= 2; channels++) {
++      for (scenario = 0; scenario < 3; scenario++) {
++         OpusEncoder *enc[2];
++         OpusDecoder *dec[2];
++         opus_int16 pcm[1920], decoded[2][1920];
++         unsigned char packet[2][1500];
++         unsigned long before_neon = neon_calls;
++         unsigned long before_original = original_calls;
++         int frame_size = frame_sizes[scenario];
++         int i, frame;
++         for (i = 0; i < 2; i++) {
++            int error;
++            enc[i] = opus_encoder_create(48000, channels,
++                                        OPUS_APPLICATION_RESTRICTED_CELT, &error);
++            if (!enc[i] || error != OPUS_OK)
++               fail("encoder creation", channels, frame_size, -1);
++            dec[i] = opus_decoder_create(48000, channels, &error);
++            if (!dec[i] || error != OPUS_OK)
++               fail("decoder creation", channels, frame_size, -1);
++            if (opus_encoder_ctl(enc[i], OPUS_SET_BITRATE(64000*channels)) != OPUS_OK ||
++                opus_encoder_ctl(enc[i], OPUS_SET_COMPLEXITY(5)) != OPUS_OK)
++               fail("encoder configuration", channels, frame_size, -1);
++         }
++         for (frame = 0; frame < 50; frame++) {
++            opus_uint32 encoder_range[2], decoder_range[2];
++            int lengths[2], j;
++            for (j = 0; j < frame_size*channels; j++) {
++               seed = 1664525U*seed + 1013904223U;
++               pcm[j] = (opus_int16)((int)(seed >> 16)/4 - 8192);
++            }
++            for (i = 0; i < 2; i++) {
++               reference_mode = i;
++               lengths[i] = opus_encode(enc[i], pcm, frame_size, packet[i],
++                                        (opus_int32)sizeof(packet[i]));
++               if (lengths[i] <= 0 || !(packet[i][0] & 0x80))
++                  fail("encode did not produce a CELT packet", channels, frame_size, frame);
++               if (opus_decode(dec[i], packet[i], lengths[i], decoded[i],
++                               frame_size, 0) != frame_size)
++                  fail("decode", channels, frame_size, frame);
++               if (opus_encoder_ctl(enc[i], OPUS_GET_FINAL_RANGE(&encoder_range[i])) != OPUS_OK ||
++                   opus_decoder_ctl(dec[i], OPUS_GET_FINAL_RANGE(&decoder_range[i])) != OPUS_OK ||
++                   encoder_range[i] != decoder_range[i])
++                  fail("encoder/decoder final range mismatch", channels, frame_size, frame);
++            }
++            if (lengths[0] != lengths[1] ||
++                memcmp(packet[0], packet[1], (size_t)lengths[0]) != 0 ||
++                memcmp(decoded[0], decoded[1], (size_t)frame_size*channels*sizeof(opus_int16)) != 0 ||
++                encoder_range[0] != encoder_range[1])
++               fail("NEON/original packet, PCM or final range mismatch", channels, frame_size, frame);
++         }
++         if (neon_calls == before_neon || original_calls == before_original)
++            fail("spreading scan was not reached by both encoders", channels, frame_size, 50);
++         for (i = 0; i < 2; i++) {
++            opus_encoder_destroy(enc[i]);
++            opus_decoder_destroy(dec[i]);
++         }
++      }
++   }
++   if (!neon_coefficients || !original_coefficients || neon_calls != original_calls ||
++       neon_coefficients != original_coefficients)
++      fail("scan call/work counters differ or contain no work", 0, 0, 0);
++   printf("PASS: 300 paired CELT frames, mono/stereo, 2.5/10/20 ms; "
++          "packets, PCM and final ranges exactly match original scan; "
++          "NEON calls=%lu coefficients=%lu original calls=%lu coefficients=%lu\n",
++          neon_calls, neon_coefficients, original_calls, original_coefficients);
++   return EXIT_SUCCESS;
++}
++
++#else
++
++int main(void)
++{
++   puts("SKIP: requires floating-point NEON without FUZZING");
++   return 77;
++}
++
++#endif
+diff --git a/celt/tests/test_spreading_reference.c b/celt/tests/test_spreading_reference.c
+new file mode 100644
+--- /dev/null
++++ b/celt/tests/test_spreading_reference.c
+@@ -0,0 +1,175 @@
++/* Copyright (c) 2007-2008 CSIRO
++   Copyright (c) 2007-2009 Xiph.Org Foundation
++   Copyright (c) 2008-2009 Gregory Maxwell
++   Written by Jean-Marc Valin and Gregory Maxwell */
++/*
++   Redistribution and use in source and binary forms, with or without
++   modification, are permitted provided that the following conditions
++   are met:
++
++   - Redistributions of source code must retain the above copyright
++   notice, this list of conditions and the following disclaimer.
++
++   - Redistributions in binary form must reproduce the above copyright
++   notice, this list of conditions and the following disclaimer in the
++   documentation and/or other materials provided with the distribution.
++
++   THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
++   ``AS IS'' AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
++   LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
++   A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER
++   OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL,
++   EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO,
++   PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR
++   PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF
++   LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING
++   NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
++   SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
++*/
++
++/* This full function is copied from the frozen pre-optimization bands.c.
++   Only its symbol is renamed. Keep it independent of production scan helpers
++   and the common decision tail so tests can detect regressions in either. */
++#ifdef HAVE_CONFIG_H
++#include "config.h"
++#endif
++#include <stdlib.h>
++#include "test_spreading_reference.h"
++#include "mathops.h"
++
++int spreading_decision_original(const CELTMode *m, const celt_norm *X, int *average,
++      int last_decision, int *hf_average, int *tapset_decision, int update_hf,
++      int end, int C, int M, const int *spread_weight)
++{
++   int i, c, N0;
++   int sum = 0, nbBands=0;
++   const opus_int16 * OPUS_RESTRICT eBands = m->eBands;
++   int decision;
++   int hf_sum=0;
++
++   celt_assert(end>0);
++
++   N0 = M*m->shortMdctSize;
++
++   if (M*(eBands[end]-eBands[end-1]) <= 8)
++      return SPREAD_NONE;
++   c=0; do {
++      for (i=0;i<end;i++)
++      {
++         int j, N, tmp=0;
++         int tcount[3] = {0,0,0};
++         const celt_norm * OPUS_RESTRICT x = X+M*eBands[i]+c*N0;
++         N = M*(eBands[i+1]-eBands[i]);
++         if (N<=8)
++            continue;
++         /* Compute rough CDF of |x[j]| */
++         for (j=0;j<N;j++)
++         {
++            opus_val32 x2N; /* Q13 */
++
++            x2N = MULT16_16(MULT16_16_Q15(SHR32(x[j], NORM_SHIFT-14), SHR32(x[j], NORM_SHIFT-14)), N);
++            if (x2N < QCONST16(0.25f,13))
++               tcount[0]++;
++            if (x2N < QCONST16(0.0625f,13))
++               tcount[1]++;
++            if (x2N < QCONST16(0.015625f,13))
++               tcount[2]++;
++         }
++
++         /* Only include four last bands (8 kHz and up) */
++         if (i>m->nbEBands-4)
++            hf_sum += celt_udiv(32*(tcount[1]+tcount[0]), N);
++         tmp = (2*tcount[2] >= N) + (2*tcount[1] >= N) + (2*tcount[0] >= N);
++         sum += tmp*spread_weight[i];
++         nbBands+=spread_weight[i];
++      }
++   } while (++c<C);
++
++   if (update_hf)
++   {
++      if (hf_sum)
++         hf_sum = celt_udiv(hf_sum, C*(4-m->nbEBands+end));
++      *hf_average = (*hf_average+hf_sum)>>1;
++      hf_sum = *hf_average;
++      if (*tapset_decision==2)
++         hf_sum += 4;
++      else if (*tapset_decision==0)
++         hf_sum -= 4;
++      if (hf_sum > 22)
++         *tapset_decision=2;
++      else if (hf_sum > 18)
++         *tapset_decision=1;
++      else
++         *tapset_decision=0;
++   }
++   /*printf("%d %d %d\n", hf_sum, *hf_average, *tapset_decision);*/
++   celt_assert(nbBands>0); /* end has to be non-zero */
++   celt_assert(sum>=0);
++   sum = celt_udiv((opus_int32)sum<<8, nbBands);
++   /* Recursive averaging */
++   sum = (sum+*average)>>1;
++   *average = sum;
++   /* Hysteresis */
++   sum = (3*sum + (((3-last_decision)<<7) + 64) + 2)>>2;
++   if (sum < 80)
++   {
++      decision = SPREAD_AGGRESSIVE;
++   } else if (sum < 256)
++   {
++      decision = SPREAD_NORMAL;
++   } else if (sum < 384)
++   {
++      decision = SPREAD_LIGHT;
++   } else {
++      decision = SPREAD_NONE;
++   }
++#ifdef FUZZING
++   decision = rand()&0x3;
++   *tapset_decision=rand()%3;
++#endif
++   return decision;
++}
++
++/* Separate, plain floating-point description of the original scan. This
++   deliberately does not use the production arithmetic or scan helpers. */
++void spreading_statistics_original(const CELTMode *m, const celt_norm *X,
++      int update_hf, int end, int C, int M, const int *spread_weight,
++      int *sum, int *nb_bands, int *hf_sum)
++{
++   int band, channel;
++   *sum = *nb_bands = *hf_sum = 0;
++   for (channel = 0; channel < C; channel++)
++   {
++      for (band = 0; band < end; band++)
++      {
++         int j;
++         int count[3] = {0, 0, 0};
++         int N = M*(m->eBands[band+1] - m->eBands[band]);
++         const celt_norm *x = X + channel*M*m->shortMdctSize + M*m->eBands[band];
++         if (N <= 8) continue;
++         for (j = 0; j < N; j++)
++         {
++#ifdef FIXED_POINT
++            /* This helper is linked in fixed builds only to make test targets
++               portable; floating-point NEON tests skip those builds. */
++            opus_val32 x2N = MULT16_16(MULT16_16_Q15(
++                  SHR32(x[j], NORM_SHIFT-14), SHR32(x[j], NORM_SHIFT-14)), N);
++            count[0] += x2N < QCONST16(.25f, 13);
++            count[1] += x2N < QCONST16(.0625f, 13);
++            count[2] += x2N < QCONST16(.015625f, 13);
++#else
++            float squared = x[j]*x[j];
++            float scaled = squared*N;
++            count[0] += scaled < .25f;
++            count[1] += scaled < .0625f;
++            count[2] += scaled < .015625f;
++#endif
++         }
++         *sum += ((2*count[0] >= N) + (2*count[1] >= N)
++               + (2*count[2] >= N))*spread_weight[band];
++         *nb_bands += spread_weight[band];
++         if (update_hf && band > m->nbEBands-4)
++            *hf_sum += 32*(count[0] + count[1])/N;
++      }
++   }
++}
+diff --git a/celt/tests/test_spreading_reference.h b/celt/tests/test_spreading_reference.h
+new file mode 100644
+--- /dev/null
++++ b/celt/tests/test_spreading_reference.h
+@@ -0,0 +1,15 @@
++/* Independent test oracle for the spreading decision and scan. */
++#ifndef TEST_SPREADING_REFERENCE_H
++#define TEST_SPREADING_REFERENCE_H
++
++#include "bands.h"
++
++int spreading_decision_original(const CELTMode *m, const celt_norm *X,
++      int *average, int last_decision, int *hf_average, int *tapset_decision,
++      int update_hf, int end, int C, int M, const int *spread_weight);
++
++void spreading_statistics_original(const CELTMode *m, const celt_norm *X,
++      int update_hf, int end, int C, int M, const int *spread_weight,
++      int *sum, int *nb_bands, int *hf_sum);
++
++#endif

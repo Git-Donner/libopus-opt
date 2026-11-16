@@ -1,0 +1,5 @@
+
+
+
+
+PASS: ARM RTCD slots 0..2=C, 3..4=NEON; masked arch dispatches exactly once; decision and history agree; early return skips scan

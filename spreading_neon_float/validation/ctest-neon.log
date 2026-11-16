@@ -1,0 +1,9 @@
+Test project /workspace/spreading-neon-validation/arm-build
+    Start 1: test_unit_spreading_neon
+    Start 2: test_encoder_spreading_neon
+1/2 Test #2: test_encoder_spreading_neon ......   Passed    1.66 sec
+2/2 Test #1: test_unit_spreading_neon .........   Passed    4.57 sec
+
+100% tests passed out of 2
+
+Total Test time (real) =   4.57 sec

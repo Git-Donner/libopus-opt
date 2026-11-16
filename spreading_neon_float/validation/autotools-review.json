@@ -1,0 +1,18 @@
+{
+  "all_overlay_files_match_current_root": true,
+  "configure_ac_matches_current_root": true,
+  "sve_symbols_in_archive": [],
+  "spreading_symbols_in_archive": [
+    "00000000000032d0 T spreading_decision",
+    "0000000000003100 T spreading_statistics_c",
+    "                 U spreading_statistics_neon",
+    "                 U spreading_decision",
+    "0000000000000000 T spreading_statistics_neon"
+  ],
+  "config_definitions": [
+    "/* #undef FIXED_POINT */",
+    "#define OPUS_ARM_MAY_HAVE_NEON_INTR 1",
+    "/* #undef OPUS_ARM_MAY_HAVE_SVE256_INTR */",
+    "#define OPUS_ARM_PRESUME_NEON_INTR 1"
+  ]
+}

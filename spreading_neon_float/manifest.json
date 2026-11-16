@@ -1,0 +1,92 @@
+{
+  "date": "2026-11-16",
+  "scope": "128-bit NEON float spreading statistics, shared original state update",
+  "reference_repository_commit": "02389fcffe2cd4ca9f531de0dd5e7d2f12e64a1f",
+  "base_note": "Incremental on existing applied PVQ NEON/SVE working source; per-file before hashes are authoritative. Git reference alone does not apply earlier delivery overlays.",
+  "files": [
+    {
+      "path": "CMakeLists.txt",
+      "status": "modified",
+      "before_sha256": "9dfe04fbe7fc5b303ea342bc00e2ef6b921c1e31c90314de4408d93276d486db",
+      "after_sha256": "b40177e8a7074f206465e696aa551e047932fe4ff1b3238f2907690ae5f45afd"
+    },
+    {
+      "path": "Makefile.am",
+      "status": "modified",
+      "before_sha256": "7ddc2a723337648ea0d58b4b94e6edad35175fae43219a98ab7ee5d6bf4819a9",
+      "after_sha256": "06574b7892b72aad5f5808582eb8aca4d3af5951a029a706d422b521d2520041"
+    },
+    {
+      "path": "celt/bands.c",
+      "status": "modified",
+      "before_sha256": "5babc134875d3ec9dc1eee681c2a1cfeff3dd86bd75d0c522912bfec0dfb5351",
+      "after_sha256": "54979555bfcae2c4ef2dabcf3337e42ebbf227b6d1e9b101a355ac3d46caafe9"
+    },
+    {
+      "path": "celt/bands.h",
+      "status": "modified",
+      "before_sha256": "2167a3fcca0789942d46cdc2f870d77d66d09ec1840ee1db8a508ae16126fad8",
+      "after_sha256": "c894918d2a8403a32d5fcafe51322678aba8262979c91561d429c8de022881d5"
+    },
+    {
+      "path": "celt/celt_encoder.c",
+      "status": "modified",
+      "before_sha256": "763f2782b31309703f91b4b236831914f64baba397b5a8f13ce5d9c8ab4ad0c0",
+      "after_sha256": "b5fc6fdb65cd0ee74a6835b72b9a47a8cf5e7b01ece11c53b60bb39af8488a89"
+    },
+    {
+      "path": "celt/arm/arm_celt_map.c",
+      "status": "modified",
+      "before_sha256": "b89916f34b5f94be3a5e77d695a94187df0faa50ba26384a6ed27d68ed63633d",
+      "after_sha256": "a7c3119aad48b8b3fec3b092b16710531c9f2dd958eb8e155531eadfeb854377"
+    },
+    {
+      "path": "celt/arm/bands_arm.h",
+      "status": "added",
+      "before_sha256": null,
+      "after_sha256": "0e40930634652bc286333034c39cc0c22ba57402f9ba4de01ba877bc17470728"
+    },
+    {
+      "path": "celt/arm/bands_neon_intr.c",
+      "status": "added",
+      "before_sha256": null,
+      "after_sha256": "31877bfaba3fd9786a14e4f528d08d1106bfb4bfbae45c8ebcbc56c53d5a91c1"
+    },
+    {
+      "path": "celt_sources.mk",
+      "status": "modified",
+      "before_sha256": "a67956e517a8152a63dd49b735f521ba33edef122970901f8688d7c8ad764bb3",
+      "after_sha256": "5e315eba06cec9be9d114b48979692ee9a6b2de237b3167b9ffe2005c3b952f3"
+    },
+    {
+      "path": "celt_headers.mk",
+      "status": "modified",
+      "before_sha256": "8678aa7b1ab0f4955ebd8d06e227a372c5d1e03381d5c40a2ea4b0bc6082db30",
+      "after_sha256": "59235e1faabe6b92e4fc1c1f2e170f6d01bb36a63aa67119b8bcc16d46d02e04"
+    },
+    {
+      "path": "celt/tests/test_unit_spreading_neon.c",
+      "status": "added",
+      "before_sha256": null,
+      "after_sha256": "17e5630995d66c8f4c2277413718529fa53d165d4baaf7ebfb62a9fc3c84788c"
+    },
+    {
+      "path": "celt/tests/test_encoder_spreading_neon.c",
+      "status": "added",
+      "before_sha256": null,
+      "after_sha256": "a8a8e20b199b283f61ff17f5f1ef459c3da6b030af64b456e7b863def67dc72c"
+    },
+    {
+      "path": "celt/tests/test_spreading_reference.c",
+      "status": "added",
+      "before_sha256": null,
+      "after_sha256": "24d6ea6f2f1867c049735d7b8dd9032b18dc33ffdab548514da58c48921994a9"
+    },
+    {
+      "path": "celt/tests/test_spreading_reference.h",
+      "status": "added",
+      "before_sha256": null,
+      "after_sha256": "127e42c599a3b860d6627720885d4f31206303c3bfe13c60fd0b02f5057d7c8e"
+    }
+  ]
+}

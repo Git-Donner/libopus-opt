@@ -1,0 +1,15 @@
+Test project /workspace/opus-build
+    Start 5: test_opus_extensions
+    Start 4: test_opus_encode
+    Start 1: test_opus_decode
+    Start 3: test_opus_api
+1/5 Test #3: test_opus_api ....................   Passed    3.07 sec
+    Start 2: test_opus_padding
+2/5 Test #2: test_opus_padding ................   Passed    0.03 sec
+3/5 Test #1: test_opus_decode .................   Passed   20.22 sec
+4/5 Test #4: test_opus_encode .................   Passed   35.23 sec
+5/5 Test #5: test_opus_extensions .............   Passed   37.78 sec
+
+100% tests passed out of 5
+
+Total Test time (real) =  37.78 sec

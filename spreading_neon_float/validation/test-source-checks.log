@@ -1,0 +1,19 @@
+Source tree: /workspace/libopus-opt
+
+PASS (exit 0):
+cc -std=c99 -Wall -Wextra -Werror -DOPUS_BUILD -DVAR_ARRAYS -DOPUS_ARM_MAY_HAVE_NEON_INTR -DOPUS_HAVE_RTCD -Iinclude -Icelt -fsyntax-only celt/tests/test_unit_spreading_neon.c celt/tests/test_encoder_spreading_neon.c
+
+PASS (exit 0):
+cc -std=c99 -Wall -Wextra -Werror -DOPUS_BUILD -DVAR_ARRAYS -Iinclude -Icelt -fsyntax-only celt/tests/test_spreading_reference.c
+
+PASS (exit 0):
+cc -std=c99 -Wall -Wextra -Werror -DOPUS_BUILD -DVAR_ARRAYS -DFIXED_POINT -Iinclude -Icelt -fsyntax-only celt/tests/test_unit_spreading_neon.c celt/tests/test_encoder_spreading_neon.c celt/tests/test_spreading_reference.c
+
+The first ad-hoc syntax command omitted VAR_ARRAYS and attempted to parse
+ARM mathops with an x86 compiler, so it failed with the expected missing
+allocation-mode configuration and arm_neon.h errors. The commands above
+provide the required definitions and check the floating reference separately.
+
+PASS: frozen spreading_decision_original body is identical to
+/workspace/spreading-neon-validation/baseline/celt/bands.c after renaming
+only the function symbol.

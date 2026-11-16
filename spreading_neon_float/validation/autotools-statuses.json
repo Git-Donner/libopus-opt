@@ -1,0 +1,9 @@
+{
+  "autotools-autoreconf": 0,
+  "autotools-configure": 0,
+  "autotools-build": 0,
+  "autotools-compile-test_unit_spreading_neon": 0,
+  "autotools-test_unit_spreading_neon": 0,
+  "autotools-compile-test_encoder_spreading_neon": 0,
+  "autotools-test_encoder_spreading_neon": 0
+}
