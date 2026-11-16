@@ -1,0 +1,424 @@
+/* Exact cutoffs, directed rounding, and exceptional-input regression tests.
+   Build this test and its production/reference objects without fast-math and
+   with -ffp-contract=off -frounding-math. Floating-point exception flags are
+   deliberately outside the result contract; all rounding state is restored. */
+#ifndef _GNU_SOURCE
+#define _GNU_SOURCE
+#endif
+#ifdef HAVE_CONFIG_H
+#include "config.h"
+#endif
+
+#include <fenv.h>
+#include <float.h>
+#include <math.h>
+#include <stdint.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include "bands.h"
+#include "cpu_support.h"
+#include "test_spreading_reference.h"
+
+#if !defined(FIXED_POINT) && defined(OPUS_ARM_MAY_HAVE_NEON_INTR) && !defined(FUZZING)
+
+#include "arm/spreading_cutoffs.h"
+#if defined(__linux__)
+#include <sys/mman.h>
+#include <unistd.h>
+#endif
+
+#define FIRST_N 9
+#define LAST_N 209
+#define PATTERNS 50
+#define RANDOM_BITS_PER_N 65536
+#define BOUNDARY_ULPS 4096
+#define CANARY 0x5a319c27U
+
+typedef struct {
+   int sum, nb_bands, hf_sum;
+} Statistics;
+
+typedef struct {
+   int average, hf_average, tapset, last;
+} History;
+
+typedef struct {
+   unsigned char *allocation;
+   size_t bytes;
+   float *x;
+   uint32_t *before;
+   int mapped, length;
+} Input;
+
+static fenv_t saved_environment;
+static int have_saved_environment;
+static uint32_t random_state = 0x9e3779b9U;
+static uint32_t nearest_bits[LAST_N+1][3];
+static uint32_t mode_bits[LAST_N+1][3];
+static unsigned long predicate_cases, scan_cases, guard_sequences;
+static int runtime_arch;
+static int context_N, context_C, context_prefix, context_pattern;
+static const char *context_rounding = "initial";
+
+static void fail(const char *what)
+{
+   fprintf(stderr, "FAIL: %s (rounding=%s N=%d C=%d prefix=%d pattern=%d)\n",
+         what, context_rounding, context_N, context_C, context_prefix,
+         context_pattern);
+   if (have_saved_environment) (void)fesetenv(&saved_environment);
+   exit(EXIT_FAILURE);
+}
+
+static uint32_t next_random(void)
+{
+   random_state ^= random_state << 13;
+   random_state ^= random_state >> 17;
+   random_state ^= random_state << 5;
+   return random_state;
+}
+
+static float from_bits(uint32_t bits)
+{
+   float value;
+   memcpy(&value, &bits, sizeof(value));
+   return value;
+}
+
+/* Volatile intermediates force two separate binary32 operations even when
+   this helper is inlined. No sqrt/division estimate defines the oracle. */
+static int original_predicate(uint32_t bits, int N, int threshold)
+{
+   static const float thresholds[3] = {.25f, .0625f, .015625f};
+   volatile float x = from_bits(bits);
+   volatile float square = x*x;
+   volatile float scaled = square*(float)N;
+   return scaled < thresholds[threshold];
+}
+
+static uint32_t first_failure(int N, int threshold)
+{
+   uint32_t low = 0, high = 0x7f800000U;
+   while (low < high)
+   {
+      uint32_t middle = low + (high-low)/2;
+      if (original_predicate(middle, N, threshold)) low = middle+1;
+      else high = middle;
+   }
+   if (!low || !original_predicate(low-1, N, threshold) ||
+         original_predicate(low, N, threshold)) fail("invalid independent cutoff");
+   return low;
+}
+
+/* Compare a scalar evaluation with the cutoff as an ordered float comparison.
+   NaNs are unordered, including signaling NaNs and both signs. */
+static void check_predicate(uint32_t bits, int N, const uint32_t cutoff[3])
+{
+   int k;
+   float magnitude = from_bits(bits & 0x7fffffffU);
+   for (k = 0; k < 3; k++)
+   {
+      int expected = original_predicate(bits, N, k);
+      int actual = magnitude < from_bits(cutoff[k]);
+      if (actual != expected)
+      {
+         fprintf(stderr, "predicate bits=0x%08lx threshold=%d cutoff=0x%08lx expected=%d actual=%d\n",
+               (unsigned long)bits, k, (unsigned long)cutoff[k], expected, actual);
+         fail("cutoff predicate differs from two rounded multiplies");
+      }
+      predicate_cases++;
+   }
+}
+
+static void verify_cutoffs(void)
+{
+   static const uint32_t special_bits[] = {
+      0U, 0x80000000U, 1U, 0x80000001U, 0x007fffffU, 0x807fffffU,
+      0x00800000U, 0x80800000U, 0x7f7fffffU, 0xff7fffffU,
+      0x7f800000U, 0xff800000U, 0x7fc00000U, 0xffc00000U,
+      0x7f800001U, 0xff800001U, 0x7fffffffU, 0xffffffffU
+   };
+   unsigned int row = 0;
+   int N, k, offset, sample;
+   /* The table interface is intentionally read directly, while all expected
+      boundaries are computed from the old two-multiply expression. */
+   if (SPREADING_CUTOFF_MAX_N != 176 ||
+         sizeof(spreading_cutoff_bits)/sizeof(spreading_cutoff_bits[0]) != 177)
+      fail("unexpected cutoff table shape");
+   for (N = 0; N <= SPREADING_CUTOFF_MAX_N; N++)
+   {
+      uint32_t cutoff[3];
+      context_N = N;
+      if (!spreading_cutoff_bits[N]) continue;
+      if (N < FIRST_N || N > LAST_N) fail("table length outside test range");
+      row++;
+      cutoff[0] = spreading_cutoff_bits[N];
+      cutoff[1] = cutoff[0] - 0x00800000U;
+      cutoff[2] = cutoff[0] - 0x01000000U;
+      for (k = 0; k < 3; k++)
+      {
+         uint32_t independently_found = first_failure(N, k);
+         if (cutoff[k] != independently_found)
+         {
+            fprintf(stderr, "table threshold=%d bits=0x%08lx independent=0x%08lx\n",
+                  k, (unsigned long)cutoff[k], (unsigned long)independently_found);
+            fail("table differs from independently searched exact boundary");
+         }
+         for (offset = -BOUNDARY_ULPS; offset <= BOUNDARY_ULPS; offset++)
+         {
+            uint32_t bits = cutoff[k] + offset;
+            check_predicate(bits, N, cutoff);
+            check_predicate(bits | 0x80000000U, N, cutoff);
+         }
+      }
+      for (sample = 0; sample < RANDOM_BITS_PER_N; sample++)
+         check_predicate(next_random(), N, cutoff);
+      for (sample = 0; sample < (int)(sizeof(special_bits)/sizeof(special_bits[0])); sample++)
+         check_predicate(special_bits[sample], N, cutoff);
+   }
+   if (row != 15) fail("expected exactly 15 standard-length cutoff rows");
+}
+
+/* The last scanned float borders an unreadable page. Prefixes put the band's
+   first element at each float alignment; stereo also tests its channel stride. */
+static Input input_alloc(int length)
+{
+   Input input;
+   size_t data_bytes = (size_t)length*sizeof(float);
+   memset(&input, 0, sizeof(input));
+   input.length = length;
+#if defined(__linux__)
+   {
+      long page = sysconf(_SC_PAGESIZE);
+      if (page > 0)
+      {
+         size_t accessible = (data_bytes + sizeof(uint32_t) + page-1)/page*page;
+         input.bytes = accessible + 2*page;
+         input.allocation = mmap(NULL, input.bytes, PROT_READ|PROT_WRITE,
+               MAP_PRIVATE|MAP_ANONYMOUS, -1, 0);
+         if (input.allocation != MAP_FAILED)
+         {
+            if (!mprotect(input.allocation, (size_t)page, PROT_NONE) &&
+                  !mprotect(input.allocation + page + accessible,
+                     (size_t)page, PROT_NONE))
+            {
+               input.mapped = 1;
+               input.x = (float *)(input.allocation + page + accessible - data_bytes);
+               input.before = (uint32_t *)input.x - 1;
+               *input.before = CANARY;
+               guard_sequences++;
+               return input;
+            }
+            munmap(input.allocation, input.bytes);
+         }
+      }
+   }
+#endif
+   input.bytes = data_bytes + 2*sizeof(uint32_t);
+   input.allocation = (unsigned char *)malloc(input.bytes);
+   if (!input.allocation) fail("input allocation");
+   input.x = (float *)(input.allocation + sizeof(uint32_t));
+   input.before = (uint32_t *)input.allocation;
+   *input.before = CANARY;
+   memcpy(input.x + length, input.before, sizeof(uint32_t));
+   return input;
+}
+
+static void input_free(Input *input)
+{
+   uint32_t after = CANARY;
+   if (!input->mapped) memcpy(&after, input->x + input->length, sizeof(after));
+   if (*input->before != CANARY || after != CANARY) fail("input canary changed");
+#if defined(__linux__)
+   if (input->mapped) munmap(input->allocation, input->bytes);
+   else
+#endif
+      free(input->allocation);
+}
+
+static void fill_band(float *x, int N, int pattern, int channel)
+{
+   static const uint32_t specials[] = {
+      0U, 0x80000000U, 1U, 0x80000001U, 0x007fffffU, 0x807fffffU,
+      0x00800000U, 0x80800000U, 0x7f7fffffU, 0xff7fffffU,
+      0x7f800000U, 0xff800000U, 0x7fc00000U, 0xffc00000U,
+      0x7f800001U, 0xff800001U
+   };
+   int j;
+   for (j = 0; j < N; j++)
+   {
+      uint32_t bits;
+      switch (pattern)
+      {
+         case 0: bits = 0U; break;
+         case 1: bits = j&1 ? 0x80000000U : 0U; break;
+         case 2: bits = 1U; break;
+         case 3: bits = 0x007fffffU; break;
+         case 4: bits = 0x00800000U; break;
+         case 5: bits = 0x7f7fffffU; break;
+         case 6: bits = 0x7f800000U; break;
+         case 7: bits = 0x7fc00000U | (next_random() & 0x003fffffU); break;
+         case 8: bits = 0x7f800001U | (next_random() & 0x003fffffU); break;
+         case 9: bits = specials[(j+channel)%16]; break;
+         case 10: bits = next_random(); break;
+         case 11: bits = next_random() & 0x3fffffffU; break;
+         case 12: bits = j%3 == channel ? 0U : 0x3f800000U; break;
+         case 13: bits = j == N-1 ? 0x3f800000U : 0U; break;
+         default:
+         {
+            int threshold = (pattern-14)/12;
+            int variant = (pattern-14)%12;
+            uint32_t boundary = mode_bits[N][threshold];
+            if (variant < 5) bits = boundary + variant-2;
+            else if (variant < 10) bits = nearest_bits[N][threshold] + variant-7;
+            else
+            {
+               int low_count = N/2 + (variant-10);
+               bits = j < low_count ? boundary-1 : boundary;
+            }
+            break;
+         }
+      }
+      if ((j+channel)&1) bits ^= 0x80000000U;
+      x[j] = from_bits(bits);
+   }
+}
+
+static void check_case(const CELTMode *mode, const float *x, int C,
+      int update_hf, const int *weights, History histories[3])
+{
+   Statistics result[3];
+   int path;
+   spreading_statistics_c(mode, x, update_hf, 1, C, 1, weights,
+         &result[0].sum, &result[0].nb_bands, &result[0].hf_sum);
+   spreading_statistics_neon(mode, x, update_hf, 1, C, 1, weights,
+         &result[1].sum, &result[1].nb_bands, &result[1].hf_sum);
+   spreading_statistics_original(mode, x, update_hf, 1, C, 1, weights,
+         &result[2].sum, &result[2].nb_bands, &result[2].hf_sum);
+   for (path = 0; path < 2; path++)
+      if (result[path].sum != result[2].sum ||
+            result[path].nb_bands != result[2].nb_bands ||
+            result[path].hf_sum != result[2].hf_sum)
+      {
+         fprintf(stderr, "statistics path=%d actual=%d/%d/%d original=%d/%d/%d update_hf=%d\n",
+               path, result[path].sum, result[path].nb_bands, result[path].hf_sum,
+               result[2].sum, result[2].nb_bands, result[2].hf_sum, update_hf);
+         fail("scan differs from frozen original");
+      }
+   for (path = 0; path < 3; path++)
+   {
+      History *history = &histories[path];
+      if (path == 2)
+         history->last = spreading_decision_original(mode, x, &history->average,
+               history->last, &history->hf_average, &history->tapset,
+               update_hf, 1, C, 1, weights);
+      else
+         history->last = spreading_decision(mode, x, &history->average,
+               history->last, &history->hf_average, &history->tapset,
+               update_hf, 1, C, 1, weights, path ? runtime_arch : 0);
+   }
+   for (path = 0; path < 2; path++)
+      if (histories[path].average != histories[2].average ||
+            histories[path].hf_average != histories[2].hf_average ||
+            histories[path].tapset != histories[2].tapset ||
+            histories[path].last != histories[2].last)
+         fail("decision or complete persistent state differs from frozen original");
+   scan_cases++;
+}
+
+static void check_rounding_mode(int rounding, const char *name)
+{
+   int N, C, prefix, threshold;
+   context_rounding = name;
+   if (fesetround(rounding) || fegetround() != rounding) fail("cannot select rounding mode");
+   for (N = FIRST_N; N <= LAST_N; N++)
+   {
+      context_N = N;
+      for (threshold = 0; threshold < 3; threshold++)
+         mode_bits[N][threshold] = first_failure(N, threshold);
+      for (C = 1; C <= 2; C++)
+         for (prefix = 0; prefix < 4; prefix++)
+         {
+            CELTMode mode;
+            opus_int16 bands[2];
+            Input input = input_alloc(C*(prefix+N));
+            float *snapshot = (float *)malloc((size_t)input.length*sizeof(float));
+            History histories[2][3];
+            int weights[1], pattern, update_hf, path, j, channel;
+            context_C = C;
+            context_prefix = prefix;
+            memset(&mode, 0, sizeof(mode));
+            bands[0] = (opus_int16)prefix;
+            bands[1] = (opus_int16)(prefix+N);
+            mode.nbEBands = mode.effEBands = 1;
+            mode.shortMdctSize = prefix+N;
+            mode.eBands = bands;
+            weights[0] = 1 + (N+prefix+C)%32;
+            if (!snapshot) fail("snapshot allocation");
+            for (update_hf = 0; update_hf < 2; update_hf++)
+               for (path = 0; path < 3; path++)
+               {
+                  histories[update_hf][path].average = (N*17+prefix)%769;
+                  histories[update_hf][path].hf_average = (N+prefix)%65;
+                  histories[update_hf][path].tapset = (N+C)%3;
+                  histories[update_hf][path].last = (N+prefix)%4;
+               }
+            for (pattern = 0; pattern < PATTERNS; pattern++)
+            {
+               context_pattern = pattern;
+               for (j = 0; j < input.length; j++) input.x[j] = from_bits(0x7f800001U);
+               for (channel = 0; channel < C; channel++)
+                  fill_band(input.x + channel*(prefix+N)+prefix, N, pattern, channel);
+               memcpy(snapshot, input.x, (size_t)input.length*sizeof(float));
+               for (update_hf = 0; update_hf < 2; update_hf++)
+                  check_case(&mode, input.x, C, update_hf, weights, histories[update_hf]);
+               if (memcmp(snapshot, input.x, (size_t)input.length*sizeof(float)))
+                  fail("scan modified const input");
+               if (fegetround() != rounding) fail("scan modified rounding mode");
+            }
+            free(snapshot);
+            input_free(&input);
+         }
+   }
+}
+
+int main(void)
+{
+   int N, threshold;
+   if (fegetenv(&saved_environment)) fail("cannot save floating-point environment");
+   have_saved_environment = 1;
+   runtime_arch = opus_select_arch();
+#if defined(OPUS_HAVE_RTCD) && !defined(OPUS_ARM_PRESUME_NEON_INTR)
+   if (runtime_arch < 3)
+   {
+      puts("SKIP: CPU does not support ARM NEON");
+      (void)fesetenv(&saved_environment);
+      return 77;
+   }
+#endif
+   context_rounding = "FE_TONEAREST";
+   if (fesetround(FE_TONEAREST)) fail("cannot select round-to-nearest");
+   for (N = FIRST_N; N <= LAST_N; N++)
+      for (threshold = 0; threshold < 3; threshold++)
+         nearest_bits[N][threshold] = first_failure(N, threshold);
+   verify_cutoffs();
+   check_rounding_mode(FE_TONEAREST, "FE_TONEAREST");
+   check_rounding_mode(FE_DOWNWARD, "FE_DOWNWARD");
+   check_rounding_mode(FE_UPWARD, "FE_UPWARD");
+   check_rounding_mode(FE_TOWARDZERO, "FE_TOWARDZERO");
+#if defined(__linux__)
+   if (!guard_sequences) fail("no protected-page input allocation succeeded");
+#endif
+   if (fesetenv(&saved_environment)) fail("cannot restore floating-point environment");
+   printf("PASS: %lu exact cutoff predicates (+/-%d ULPs, %d random bits/N, exceptional values); %lu scan/decision/history cases across all four rounding modes; %lu guard-page sequences; saved environment restored\n",
+         predicate_cases, BOUNDARY_ULPS, RANDOM_BITS_PER_N, scan_cases, guard_sequences);
+   return EXIT_SUCCESS;
+}
+
+#else
+int main(void)
+{
+   puts("SKIP: floating-point ARM NEON build without FUZZING required");
+   return 77;
+}
+#endif

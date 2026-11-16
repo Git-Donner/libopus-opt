@@ -1,0 +1,13 @@
+checking file celt/arm/bands_neon_intr.c
+checking file celt/arm/spreading_cutoffs.h
+checking file celt/tests/test_spreading_cutoffs.c
+checking file celt_headers.mk
+checking file CMakeLists.txt
+checking file Makefile.am
+patching file celt/arm/bands_neon_intr.c
+patching file celt/arm/spreading_cutoffs.h
+patching file celt/tests/test_spreading_cutoffs.c
+patching file celt_headers.mk
+patching file CMakeLists.txt
+patching file Makefile.am
+PASS: dry-run/apply reproduce exact delivered files from saved V1 baseline.

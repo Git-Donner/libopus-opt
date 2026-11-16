@@ -1,0 +1,1 @@
+PASS: 300 paired CELT frames, mono/stereo, 2.5/10/20 ms; packets, PCM and final ranges exactly match original scan; NEON calls=296 coefficients=165384 original calls=296 coefficients=165384

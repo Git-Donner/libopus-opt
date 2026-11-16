@@ -1,0 +1,2 @@
+PASS: 5162040 exact cutoff predicates (+/-4096 ULPs, 65536 random bits/N, exceptional values); 643200 scan/decision/history cases across all four rounding modes; 6432 guard-page sequences; saved environment restored
+QEMU correctness-test elapsed seconds: 31.717 (not a native performance measurement)

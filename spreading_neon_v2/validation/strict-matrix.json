@@ -1,0 +1,95 @@
+{
+  "purpose": "AArch64 QEMU correctness validation; no native performance claim",
+  "source_sha256": {
+    "/workspace/libopus-opt/celt/arm/bands_neon_intr.c": "c9471c162c03fa8b0617c4c03ea2b5891a1d85212ff5989e38492e57e8d9dd8b",
+    "/workspace/libopus-opt/celt/arm/spreading_cutoffs.h": "f0afb4d238ca05d4afbb1239077fdbf695b714c3f91269c883dbc7aba6f646d2",
+    "/workspace/libopus-opt/celt/bands.c": "54979555bfcae2c4ef2dabcf3337e42ebbf227b6d1e9b101a355ac3d46caafe9",
+    "/workspace/libopus-opt/celt/tests/test_spreading_cutoffs.c": "32e41c6cad40220ca9be2cba3b2e116778b2d6059d1fed90c57374810be23bfa",
+    "/workspace/libopus-opt/celt/tests/test_spreading_reference.c": "24d6ea6f2f1867c049735d7b8dd9032b18dc33ffdab548514da58c48921994a9"
+  },
+  "results": [
+    {
+      "cutoffs": 1,
+      "vector_finish": 1,
+      "sanitizer": null,
+      "exit_code": 0,
+      "log": "/workspace/spreading-v2-validation/cutoffs-1-finish-1.log",
+      "commands": "/workspace/spreading-v2-validation/cutoffs-1-finish-1-commands.txt",
+      "evidence": "Completed before matrix: PASS, 5,162,040 predicates; 643,200 complete cases; 6,432 protected-page sequences. Subsequent FPCR variable type change preserves the same AArch64 64-bit value and generated instructions."
+    },
+    {
+      "cutoffs": 0,
+      "vector_finish": 0,
+      "sanitizer": null,
+      "exit_code": 0,
+      "driver_command": [
+        "python3",
+        "/workspace/spreading-v2-validation/run-cutoff-test.py",
+        "--cutoffs",
+        "0",
+        "--vector-finish",
+        "0"
+      ],
+      "driver_elapsed_seconds": 39.086,
+      "log": "/workspace/spreading-v2-validation/cutoffs-0-finish-0.log",
+      "commands": "/workspace/spreading-v2-validation/cutoffs-0-finish-0-commands.txt",
+      "driver_log": "/workspace/spreading-v2-validation/cutoffs-0-finish-0-driver.log"
+    },
+    {
+      "cutoffs": 1,
+      "vector_finish": 0,
+      "sanitizer": null,
+      "exit_code": 0,
+      "driver_command": [
+        "python3",
+        "/workspace/spreading-v2-validation/run-cutoff-test.py",
+        "--cutoffs",
+        "1",
+        "--vector-finish",
+        "0"
+      ],
+      "driver_elapsed_seconds": 32.252,
+      "log": "/workspace/spreading-v2-validation/cutoffs-1-finish-0.log",
+      "commands": "/workspace/spreading-v2-validation/cutoffs-1-finish-0-commands.txt",
+      "driver_log": "/workspace/spreading-v2-validation/cutoffs-1-finish-0-driver.log"
+    },
+    {
+      "cutoffs": 0,
+      "vector_finish": 1,
+      "sanitizer": null,
+      "exit_code": 0,
+      "driver_command": [
+        "python3",
+        "/workspace/spreading-v2-validation/run-cutoff-test.py",
+        "--cutoffs",
+        "0",
+        "--vector-finish",
+        "1"
+      ],
+      "driver_elapsed_seconds": 43.43,
+      "log": "/workspace/spreading-v2-validation/cutoffs-0-finish-1.log",
+      "commands": "/workspace/spreading-v2-validation/cutoffs-0-finish-1-commands.txt",
+      "driver_log": "/workspace/spreading-v2-validation/cutoffs-0-finish-1-driver.log"
+    },
+    {
+      "cutoffs": 1,
+      "vector_finish": 1,
+      "sanitizer": "undefined",
+      "exit_code": 0,
+      "driver_command": [
+        "python3",
+        "/workspace/spreading-v2-validation/run-cutoff-test.py",
+        "--cutoffs",
+        "1",
+        "--vector-finish",
+        "1",
+        "--sanitize"
+      ],
+      "driver_elapsed_seconds": 36.039,
+      "log": "/workspace/spreading-v2-validation/cutoffs-1-finish-1-ubsan.log",
+      "commands": "/workspace/spreading-v2-validation/cutoffs-1-finish-1-ubsan-commands.txt",
+      "driver_log": "/workspace/spreading-v2-validation/cutoffs-1-finish-1-ubsan-driver.log"
+    }
+  ],
+  "all_status_zero": true
+}

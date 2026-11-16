@@ -1,0 +1,54 @@
+QEMU translated executed kernel blocks; diagnostic trace, not performance data.
+
+IN: spreading_statistics_neon
+0x7fcf191b3000:  53027e06  lsr      w6, w16, #2
+0x7fcf191b3004:  51600040  sub      w0, w2, #0x800, lsl #12
+0x7fcf191b3008:  510004c6  sub      w6, w6, #1
+0x7fcf191b300c:  91004358  add      x24, x26, #0x10
+0x7fcf191b3010:  4e040f90  dup      v16.4s, w28
+0x7fcf191b3014:  4e040c59  dup      v25.4s, w2
+0x7fcf191b3018:  4ebd1fbc  mov      v28.16b, v29.16b
+0x7fcf191b301c:  8b265306  add      x6, x24, w6, uxtw #4
+0x7fcf191b3020:  4ebd1fbe  mov      v30.16b, v29.16b
+0x7fcf191b3024:  51001218  sub      w24, w16, #4
+0x7fcf191b3028:  4e040c07  dup      v7.4s, w0
+0x7fcf191b302c:  aa1a03e0  mov      x0, x26
+0x7fcf191b3030:  3cc1041f  ldr      q31, [x0], #0x10
+0x7fcf191b3034:  4ea0fbff  fabs     v31.4s, v31.4s
+0x7fcf191b3038:  6ebfe73a  fcmgt    v26.4s, v25.4s, v31.4s
+0x7fcf191b303c:  6ebfe4fb  fcmgt    v27.4s, v7.4s, v31.4s
+0x7fcf191b3040:  6ebfe61f  fcmgt    v31.4s, v16.4s, v31.4s
+0x7fcf191b3044:  6eba87de  sub      v30.4s, v30.4s, v26.4s
+0x7fcf191b3048:  6ebb879c  sub      v28.4s, v28.4s, v27.4s
+0x7fcf191b304c:  6ebf87bd  sub      v29.4s, v29.4s, v31.4s
+0x7fcf191b3050:  eb06001f  cmp      x0, x6
+0x7fcf191b3054:  54fffee1  b.ne     #0x7fcf191b3030
+
+
+
+IN: spreading_statistics_neon
+0x7fcf191b3030:  3cc1041f  ldr      q31, [x0], #0x10
+0x7fcf191b3034:  4ea0fbff  fabs     v31.4s, v31.4s
+0x7fcf191b3038:  6ebfe73a  fcmgt    v26.4s, v25.4s, v31.4s
+0x7fcf191b303c:  6ebfe4fb  fcmgt    v27.4s, v7.4s, v31.4s
+0x7fcf191b3040:  6ebfe61f  fcmgt    v31.4s, v16.4s, v31.4s
+0x7fcf191b3044:  6eba87de  sub      v30.4s, v30.4s, v26.4s
+0x7fcf191b3048:  6ebb879c  sub      v28.4s, v28.4s, v27.4s
+0x7fcf191b304c:  6ebf87bd  sub      v29.4s, v29.4s, v31.4s
+0x7fcf191b3050:  eb06001f  cmp      x0, x6
+0x7fcf191b3054:  54fffee1  b.ne     #0x7fcf191b3030
+
+
+
+IN: spreading_statistics_neon
+0x7fcf191b3068:  4eb4bfbd  addp     v29.4s, v29.4s, v20.4s
+0x7fcf191b306c:  4ebcbfde  addp     v30.4s, v30.4s, v28.4s
+0x7fcf191b3070:  4ebdbfde  addp     v30.4s, v30.4s, v29.4s
+0x7fcf191b3074:  4e040e1d  dup      v29.4s, w16
+0x7fcf191b3078:  4ebe87df  add      v31.4s, v30.4s, v30.4s
+0x7fcf191b307c:  6ebd3fff  cmhs     v31.4s, v31.4s, v29.4s
+0x7fcf191b3080:  4e3f1e5f  and      v31.16b, v18.16b, v31.16b
+0x7fcf191b3084:  4eb1bbff  addv     s31, v31.4s
+0x7fcf191b3088:  1e2603e2  fmov     w2, s31
+0x7fcf191b308c:  340000db  cbz      w27, #0x7fcf191b30a4
+

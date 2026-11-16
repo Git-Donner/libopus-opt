@@ -1,0 +1,47 @@
+{
+  "date": "2026-11-16",
+  "base_delivery_commit": "6b79fb04c31d810112789fa5423afa473a25acf7",
+  "base_note": "Incremental on source with V1 spreading plus prior PVQ NEON/SVE overlays already applied; per-file before hashes identify the exact base.",
+  "default_switches": {
+    "OPUS_SPREAD_NEON_CUTOFFS": 1,
+    "OPUS_SPREAD_NEON_VECTOR_FINISH": 1
+  },
+  "files": [
+    {
+      "path": "celt/arm/bands_neon_intr.c",
+      "status": "modified",
+      "before_sha256": "31877bfaba3fd9786a14e4f528d08d1106bfb4bfbae45c8ebcbc56c53d5a91c1",
+      "after_sha256": "c9471c162c03fa8b0617c4c03ea2b5891a1d85212ff5989e38492e57e8d9dd8b"
+    },
+    {
+      "path": "celt/arm/spreading_cutoffs.h",
+      "status": "added",
+      "before_sha256": null,
+      "after_sha256": "f0afb4d238ca05d4afbb1239077fdbf695b714c3f91269c883dbc7aba6f646d2"
+    },
+    {
+      "path": "celt/tests/test_spreading_cutoffs.c",
+      "status": "added",
+      "before_sha256": null,
+      "after_sha256": "32e41c6cad40220ca9be2cba3b2e116778b2d6059d1fed90c57374810be23bfa"
+    },
+    {
+      "path": "celt_headers.mk",
+      "status": "modified",
+      "before_sha256": "59235e1faabe6b92e4fc1c1f2e170f6d01bb36a63aa67119b8bcc16d46d02e04",
+      "after_sha256": "472c2353f75a55b8c2e193e7db8f2d4a62c9aeda9733a7d588015e5a1d209e37"
+    },
+    {
+      "path": "CMakeLists.txt",
+      "status": "modified",
+      "before_sha256": "b40177e8a7074f206465e696aa551e047932fe4ff1b3238f2907690ae5f45afd",
+      "after_sha256": "3cfb64344edce37320c6699285375297217bb0b3990ded145fe54f6f347452bb"
+    },
+    {
+      "path": "Makefile.am",
+      "status": "modified",
+      "before_sha256": "06574b7892b72aad5f5808582eb8aca4d3af5951a029a706d422b521d2520041",
+      "after_sha256": "39e9a5f74a7e3118d4e551d16853543c63426e57e5961fe24a83c03e78349e49"
+    }
+  ]
+}

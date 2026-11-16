@@ -1,0 +1,12 @@
+[1/12] Building C object CMakeFiles/opus.dir/celt/arm/bands_neon_intr.c.o
+[2/12] Linking C static library libopus.a
+[3/12] Linking C executable test_opus_padding
+[4/12] Linking C executable test_unit_spreading_neon
+[5/12] Linking C executable test_opus_encode
+[6/12] Linking C executable test_opus_decode
+[7/12] Linking C executable test_opus_extensions
+[8/12] Building C object CMakeFiles/test_spreading_cutoffs.dir/celt/tests/test_spreading_reference.c.o
+[9/12] Building C object CMakeFiles/test_spreading_cutoffs.dir/celt/tests/test_spreading_cutoffs.c.o
+[10/12] Linking C executable test_encoder_spreading_neon
+[11/12] Linking C executable test_spreading_cutoffs
+[12/12] Linking C executable test_opus_api

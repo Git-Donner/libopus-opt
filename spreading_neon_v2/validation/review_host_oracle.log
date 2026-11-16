@@ -1,0 +1,11 @@
+nearest boundary mismatches: 0
+downward first difference N=22 T=0.25 xbits=0x3dda514a old=1 cutoff=0
+downward boundary mismatches: 24
+upward first difference N=12 T=0.25 xbits=0x3e13cd3a old=0 cutoff=1
+upward boundary mismatches: 30
+towardzero first difference N=22 T=0.25 xbits=0x3dda514a old=1 cutoff=0
+towardzero boundary mismatches: 24
+PASS: 12534120 host boundary/random comparisons (including both signs and all-bit-pattern random inputs)
+flags 0.1f               old=0x20 new=0x0 classification=1/1
+flags FLT_MAX            old=0x28 new=0x0 classification=0/0
+flags smallest subnormal old=0x30 new=0x0 classification=1/1

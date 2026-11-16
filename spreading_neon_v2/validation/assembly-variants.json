@@ -1,0 +1,26 @@
+[
+  {
+    "variant": "00",
+    "FABS": false,
+    "FPCR_read": false,
+    "vector_ADDP": false
+  },
+  {
+    "variant": "10",
+    "FABS": true,
+    "FPCR_read": true,
+    "vector_ADDP": false
+  },
+  {
+    "variant": "01",
+    "FABS": false,
+    "FPCR_read": false,
+    "vector_ADDP": true
+  },
+  {
+    "variant": "11",
+    "FABS": true,
+    "FPCR_read": true,
+    "vector_ADDP": true
+  }
+]

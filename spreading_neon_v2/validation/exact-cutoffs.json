@@ -1,0 +1,175 @@
+{
+  "result": "PASS",
+  "oracle": "integer-only IEEE-754 binary32 RN ties-to-even, two separately rounded products",
+  "boundary_ulps_each_side": 4096,
+  "random_float_bit_patterns_per_N": 65536,
+  "random_predicates_per_N": 196608,
+  "checked_predicates": 3687390,
+  "directed_rounding_counterexamples": [
+    {
+      "rounding_mode": "downward",
+      "cutoffs_different_from_RN": 12,
+      "counterexample": {
+        "N": 22,
+        "threshold_index": 0,
+        "x_bits": "0x3dda514a",
+        "original_predicate": true,
+        "RN_cutoff_predicate": false
+      }
+    },
+    {
+      "rounding_mode": "upward",
+      "cutoffs_different_from_RN": 15,
+      "counterexample": {
+        "N": 12,
+        "threshold_index": 0,
+        "x_bits": "0x3e13cd3a",
+        "original_predicate": false,
+        "RN_cutoff_predicate": true
+      }
+    },
+    {
+      "rounding_mode": "towardzero",
+      "cutoffs_different_from_RN": 12,
+      "counterexample": {
+        "N": 22,
+        "threshold_index": 0,
+        "x_bits": "0x3dda514a",
+        "original_predicate": true,
+        "RN_cutoff_predicate": false
+      }
+    }
+  ],
+  "cutoffs": [
+    {
+      "N": 12,
+      "cutoff_bits": [
+        "0x3e13cd3b",
+        "0x3d93cd3b",
+        "0x3d13cd3b"
+      ]
+    },
+    {
+      "N": 16,
+      "cutoff_bits": [
+        "0x3e000000",
+        "0x3d800000",
+        "0x3d000000"
+      ]
+    },
+    {
+      "N": 18,
+      "cutoff_bits": [
+        "0x3df15bef",
+        "0x3d715bef",
+        "0x3cf15bef"
+      ]
+    },
+    {
+      "N": 22,
+      "cutoff_bits": [
+        "0x3dda514a",
+        "0x3d5a514a",
+        "0x3cda514a"
+      ]
+    },
+    {
+      "N": 24,
+      "cutoff_bits": [
+        "0x3dd105ec",
+        "0x3d5105ec",
+        "0x3cd105ec"
+      ]
+    },
+    {
+      "N": 32,
+      "cutoff_bits": [
+        "0x3db504f4",
+        "0x3d3504f4",
+        "0x3cb504f4"
+      ]
+    },
+    {
+      "N": 36,
+      "cutoff_bits": [
+        "0x3daaaaab",
+        "0x3d2aaaab",
+        "0x3caaaaab"
+      ]
+    },
+    {
+      "N": 44,
+      "cutoff_bits": [
+        "0x3d9a5fb2",
+        "0x3d1a5fb2",
+        "0x3c9a5fb2"
+      ]
+    },
+    {
+      "N": 48,
+      "cutoff_bits": [
+        "0x3d93cd3b",
+        "0x3d13cd3b",
+        "0x3c93cd3b"
+      ]
+    },
+    {
+      "N": 64,
+      "cutoff_bits": [
+        "0x3d800000",
+        "0x3d000000",
+        "0x3c800000"
+      ]
+    },
+    {
+      "N": 72,
+      "cutoff_bits": [
+        "0x3d715bef",
+        "0x3cf15bef",
+        "0x3c715bef"
+      ]
+    },
+    {
+      "N": 88,
+      "cutoff_bits": [
+        "0x3d5a514a",
+        "0x3cda514a",
+        "0x3c5a514a"
+      ]
+    },
+    {
+      "N": 96,
+      "cutoff_bits": [
+        "0x3d5105ec",
+        "0x3cd105ec",
+        "0x3c5105ec"
+      ]
+    },
+    {
+      "N": 144,
+      "cutoff_bits": [
+        "0x3d2aaaab",
+        "0x3caaaaab",
+        "0x3c2aaaab"
+      ]
+    },
+    {
+      "N": 176,
+      "cutoff_bits": [
+        "0x3d1a5fb2",
+        "0x3c9a5fb2",
+        "0x3c1a5fb2"
+      ]
+    }
+  ],
+  "scope": "Numerical correctness and monotonicity proof; no performance measurement",
+  "header_sha256": "f0afb4d238ca05d4afbb1239077fdbf695b714c3f91269c883dbc7aba6f646d2",
+  "verifier_sha256": "7e986a0c47f9f1decc59dbc5a2c94f7d43152d0812f3f81188f5f3c679b55c7a",
+  "table_entries": 177,
+  "zero_entries_for_unsupported_N": 162,
+  "derived_cutoff_shift_bits": [
+    0,
+    8388608,
+    16777216
+  ]
+}

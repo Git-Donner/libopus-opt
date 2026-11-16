@@ -1,0 +1,1 @@
+PASS: 45 exact cutoffs; 3,687,390 integer-oracle predicates; +/-4096 ULPs with both signs and 65,536 random float bit patterns per N

@@ -1,0 +1,51 @@
+Start testing: Nov 16 07:42 UTC
+----------------------------------------------------------
+2/8 Testing: test_encoder_spreading_neon
+2/8 Test: test_encoder_spreading_neon
+Command: "/workspace/pvq-neon-validation/toolchain/usr/bin/qemu-aarch64" "-L" "/workspace/pvq-neon-validation/toolchain/usr/aarch64-linux-gnu" "/workspace/spreading-neon-validation/arm-build/test_encoder_spreading_neon"
+Directory: /workspace/spreading-neon-validation/arm-build
+"test_encoder_spreading_neon" start time: Nov 16 07:42 UTC
+Output:
+----------------------------------------------------------
+PASS: 300 paired CELT frames, mono/stereo, 2.5/10/20 ms; packets, PCM and final ranges exactly match original scan; NEON calls=296 coefficients=165384 original calls=296 coefficients=165384
+<end of output>
+Test time =   2.08 sec
+----------------------------------------------------------
+Test Passed.
+"test_encoder_spreading_neon" end time: Nov 16 07:42 UTC
+"test_encoder_spreading_neon" time elapsed: 00:00:02
+----------------------------------------------------------
+
+1/8 Testing: test_unit_spreading_neon
+1/8 Test: test_unit_spreading_neon
+Command: "/workspace/pvq-neon-validation/toolchain/usr/bin/qemu-aarch64" "-L" "/workspace/pvq-neon-validation/toolchain/usr/aarch64-linux-gnu" "/workspace/spreading-neon-validation/arm-build/test_unit_spreading_neon"
+Directory: /workspace/spreading-neon-validation/arm-build
+"test_unit_spreading_neon" start time: Nov 16 07:42 UTC
+Output:
+----------------------------------------------------------
+PASS: 150016 spreading cases; C/NEON/original aggregates and dispatched/original decisions/histories exact; 2344 guard-page sequences
+<end of output>
+Test time =   8.22 sec
+----------------------------------------------------------
+Test Passed.
+"test_unit_spreading_neon" end time: Nov 16 07:43 UTC
+"test_unit_spreading_neon" time elapsed: 00:00:08
+----------------------------------------------------------
+
+3/8 Testing: test_spreading_cutoffs
+3/8 Test: test_spreading_cutoffs
+Command: "/workspace/pvq-neon-validation/toolchain/usr/bin/qemu-aarch64" "-L" "/workspace/pvq-neon-validation/toolchain/usr/aarch64-linux-gnu" "/workspace/spreading-neon-validation/arm-build/test_spreading_cutoffs"
+Directory: /workspace/spreading-neon-validation/arm-build
+"test_spreading_cutoffs" start time: Nov 16 07:42 UTC
+Output:
+----------------------------------------------------------
+PASS: 5162040 exact cutoff predicates (+/-4096 ULPs, 65536 random bits/N, exceptional values); 643200 scan/decision/history cases across all four rounding modes; 6432 guard-page sequences; saved environment restored
+<end of output>
+Test time =  34.81 sec
+----------------------------------------------------------
+Test Passed.
+"test_spreading_cutoffs" end time: Nov 16 07:43 UTC
+"test_spreading_cutoffs" time elapsed: 00:00:34
+----------------------------------------------------------
+
+End testing: Nov 16 07:43 UTC

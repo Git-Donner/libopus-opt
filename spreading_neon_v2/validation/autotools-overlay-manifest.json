@@ -1,0 +1,11 @@
+{
+  "base_source": "/workspace/spreading-neon-validation/autotools-source",
+  "overlay": {
+    "celt/arm/bands_neon_intr.c": "c9471c162c03fa8b0617c4c03ea2b5891a1d85212ff5989e38492e57e8d9dd8b",
+    "celt/arm/spreading_cutoffs.h": "f0afb4d238ca05d4afbb1239077fdbf695b714c3f91269c883dbc7aba6f646d2",
+    "celt_headers.mk": "472c2353f75a55b8c2e193e7db8f2d4a62c9aeda9733a7d588015e5a1d209e37",
+    "CMakeLists.txt": "3cfb64344edce37320c6699285375297217bb0b3990ded145fe54f6f347452bb",
+    "Makefile.am": "39e9a5f74a7e3118d4e551d16853543c63426e57e5961fe24a83c03e78349e49",
+    "celt/tests/test_spreading_cutoffs.c": "32e41c6cad40220ca9be2cba3b2e116778b2d6059d1fed90c57374810be23bfa"
+  }
+}
