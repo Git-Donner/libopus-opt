@@ -1,0 +1,2 @@
+HWCAP_SVE=0; requested VL=0 bytes
+PASS: 11344 PVQ cases; exact NEON pulse/energy matches; direct SVE calls=0; exact-N guard pages enabled on Linux

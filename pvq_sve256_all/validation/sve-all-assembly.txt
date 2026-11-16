@@ -1,0 +1,270 @@
+
+/workspace/pvq-sve256-validation/arm-o3/CMakeFiles/opus.dir/celt/arm/vq_sve256.c.o:     file format elf64-littleaarch64
+
+
+Disassembly of section .text:
+
+0000000000000000 <op_pvq_search_sve256>:
+   0:	a9bf7bfd 	stp	x29, x30, [sp, #-16]!
+   4:	04a0e3e7 	cntw	x7
+   8:	f10020ff 	cmp	x7, #0x8
+   c:	90000006 	adrp	x6, 0 <__stack_chk_guard>
+  10:	f94000c6 	ldr	x6, [x6]
+  14:	910003fd 	mov	x29, sp
+  18:	d10043ff 	sub	sp, sp, #0x10
+  1c:	7a470864 	ccmp	w3, #0x7, #0x4, eq	// eq = none
+  20:	f94000c8 	ldr	x8, [x6]
+  24:	f81f83a8 	stur	x8, [x29, #-8]
+  28:	d2800008 	mov	x8, #0x0                   	// #0
+  2c:	5400018c 	b.gt	5c <op_pvq_search_sve256+0x5c>
+  30:	94000000 	bl	0 <op_pvq_search_neon>
+  34:	90000000 	adrp	x0, 0 <__stack_chk_guard>
+  38:	f9400000 	ldr	x0, [x0]
+  3c:	f85f83a2 	ldur	x2, [x29, #-8]
+  40:	f9400001 	ldr	x1, [x0]
+  44:	eb010042 	subs	x2, x2, x1
+  48:	d2800001 	mov	x1, #0x0                   	// #0
+  4c:	54001e61 	b.ne	418 <op_pvq_search_sve256+0x418>  // b.any
+  50:	910003bf 	mov	sp, x29
+  54:	a8c17bfd 	ldp	x29, x30, [sp], #16
+  58:	d65f03c0 	ret
+  5c:	2a0203e8 	mov	w8, w2
+  60:	37f81c42 	tbnz	w2, #31, 3e8 <op_pvq_search_sve256+0x3e8>
+  64:	2a0303e5 	mov	w5, w3
+  68:	aa0003e9 	mov	x9, x0
+  6c:	25b8c01f 	mov	z31.s, #0
+  70:	aa0103e7 	mov	x7, x1
+  74:	d2800006 	mov	x6, #0x0                   	// #0
+  78:	047f33fb 	mov	z27.d, z31.d
+  7c:	d37e7ca0 	ubfiz	x0, x5, #2, #32
+  80:	2538c01c 	mov	z28.b, #0
+  84:	2598e086 	ptrue	p6.s, vl4
+  88:	91003c00 	add	x0, x0, #0xf
+  8c:	927c7800 	and	x0, x0, #0x7fffffff0
+  90:	cb2063ff 	sub	sp, sp, x0
+  94:	910003e3 	mov	x3, sp
+  98:	cb2063ff 	sub	sp, sp, x0
+  9c:	910003e4 	mov	x4, sp
+  a0:	cb2063ff 	sub	sp, sp, x0
+  a4:	910003e2 	mov	x2, sp
+  a8:	25a504c7 	whilelt	p7.s, w6, w5
+  ac:	a5465d3d 	ld1w	{z29.s}, p7/z, [x9, x6, lsl #2]
+  b0:	65913faf 	fcmlt	p15.s, p7/z, z29.s, #0.0
+  b4:	059f1ffe 	mov	z30.s, p15/z, #-1
+  b8:	e5465c5e 	st1w	{z30.s}, p7, [x2, x6, lsl #2]
+  bc:	04903fbe 	movprfx	z30.s, p7/z, z29.s
+  c0:	049cbfbe 	fabs	z30.s, p7/m, z29.s
+  c4:	e5465c9e 	st1w	{z30.s}, p7, [x4, x6, lsl #2]
+  c8:	e5465c7b 	st1w	{z27.s}, p7, [x3, x6, lsl #2]
+  cc:	e5465cfc 	st1w	{z28.s}, p7, [x7, x6, lsl #2]
+  d0:	910020c6 	add	x6, x6, #0x8
+  d4:	65809bdf 	fadd	z31.s, p6/m, z31.s, z30.s
+  d8:	052203de 	ext	z30.b, z30.b, z30.b, #16
+  dc:	65809bdf 	fadd	z31.s, p6/m, z31.s, z30.s
+  e0:	6b0600bf 	cmp	w5, w6
+  e4:	54fffe2c 	b.gt	a8 <op_pvq_search_sve256+0xa8>
+  e8:	6b85051f 	cmp	w8, w5, asr #1
+  ec:	5400156d 	b.le	398 <op_pvq_search_sve256+0x398>
+  f0:	04a14017 	index	z23.s, #0, #1
+  f4:	0420bef6 	movprfx	z22, z23
+  f8:	0540f816 	eor	z22.s, z22.s, #0x2
+  fc:	05b633fe 	tbl	z30.s, {z31.s}, z22.s
+ 100:	5283afa0 	mov	w0, #0x1d7d                	// #7549
+ 104:	65809bdf 	fadd	z31.s, p6/m, z31.s, z30.s
+ 108:	05400017 	eor	z23.s, z23.s, #0x1
+ 10c:	05b733fe 	tbl	z30.s, {z31.s}, z23.s
+ 110:	72a4d200 	movk	w0, #0x2690, lsl #16
+ 114:	65809bdf 	fadd	z31.s, p6/m, z31.s, z30.s
+ 118:	1e27001e 	fmov	s30, w0
+ 11c:	1e3e23f0 	fcmpe	s31, s30
+ 120:	5400156c 	b.gt	3cc <op_pvq_search_sve256+0x3cc>
+ 124:	d2800000 	mov	x0, #0x0                   	// #0
+ 128:	04a1441f 	index	z31.s, w0, #1
+ 12c:	25a50407 	whilelt	p7.s, w0, w5
+ 130:	25809fe6 	cmpeq	p6.s, p7/z, z31.s, #0
+ 134:	04903bff 	movprfx	z31.s, p6/z, z31.s
+ 138:	0596ce1f 	fmov	z31.s, p6/m, #1.000000000000000000e+00
+ 13c:	e5405c9f 	st1w	{z31.s}, p7, [x4, x0, lsl #2]
+ 140:	91002000 	add	x0, x0, #0x8
+ 144:	6b0000bf 	cmp	w5, w0
+ 148:	54ffff0c 	b.gt	128 <op_pvq_search_sve256+0x128>
+ 14c:	25b9ce1f 	fmov	z31.s, #1.000000000000000000e+00
+ 150:	90000000 	adrp	x0, 0 <op_pvq_search_sve256>
+ 154:	1e620119 	scvtf	d25, w8
+ 158:	658e33fd 	frecpe	z29.s, z31.s
+ 15c:	2538c01a 	mov	z26.b, #0
+ 160:	659d1bfe 	frecps	z30.s, z31.s, z29.s
+ 164:	2598e086 	ptrue	p6.s, vl4
+ 168:	fd40001b 	ldr	d27, [x0]
+ 16c:	d2800000 	mov	x0, #0x0                   	// #0
+ 170:	25b8c01f 	mov	z31.s, #0
+ 174:	659e0bbd 	fmul	z29.s, z29.s, z30.s
+ 178:	047f33fc 	mov	z28.d, z31.d
+ 17c:	1e7b2b39 	fadd	d25, d25, d27
+ 180:	1e624339 	fcvt	s25, d25
+ 184:	05242339 	mov	z25.s, s25
+ 188:	659d0b39 	fmul	z25.s, z25.s, z29.s
+ 18c:	25a50407 	whilelt	p7.s, w0, w5
+ 190:	a5405c9d 	ld1w	{z29.s}, p7/z, [x4, x0, lsl #2]
+ 194:	0420bfbe 	movprfx	z30, z29
+ 198:	65829f3e 	fmul	z30.s, p7/m, z30.s, z25.s
+ 19c:	04903fdb 	movprfx	z27.s, p7/z, z30.s
+ 1a0:	659cbfdb 	fcvtzs	z27.s, p7/m, z30.s
+ 1a4:	e5405cfb 	st1w	{z27.s}, p7, [x7, x0, lsl #2]
+ 1a8:	04903f7e 	movprfx	z30.s, p7/z, z27.s
+ 1ac:	6594bf7e 	scvtf	z30.s, p7/m, z27.s
+ 1b0:	0420bfd8 	movprfx	z24, z30
+ 1b4:	65809fd8 	fadd	z24.s, p7/m, z24.s, z30.s
+ 1b8:	e5405c78 	st1w	{z24.s}, p7, [x3, x0, lsl #2]
+ 1bc:	91002000 	add	x0, x0, #0x8
+ 1c0:	65be1bbc 	fmla	z28.s, p6/m, z29.s, z30.s
+ 1c4:	65be1bdf 	fmla	z31.s, p6/m, z30.s, z30.s
+ 1c8:	052203bd 	ext	z29.b, z29.b, z29.b, #16
+ 1cc:	052203de 	ext	z30.b, z30.b, z30.b, #16
+ 1d0:	04bb035a 	add	z26.s, z26.s, z27.s
+ 1d4:	65be1bbc 	fmla	z28.s, p6/m, z29.s, z30.s
+ 1d8:	65be1bdf 	fmla	z31.s, p6/m, z30.s, z30.s
+ 1dc:	6b0000bf 	cmp	w5, w0
+ 1e0:	54fffd6c 	b.gt	18c <op_pvq_search_sve256+0x18c>
+ 1e4:	05b6339e 	tbl	z30.s, {z28.s}, z22.s
+ 1e8:	65809bdc 	fadd	z28.s, p6/m, z28.s, z30.s
+ 1ec:	2518e3e7 	ptrue	p7.b
+ 1f0:	05b7339e 	tbl	z30.s, {z28.s}, z23.s
+ 1f4:	65809bdc 	fadd	z28.s, p6/m, z28.s, z30.s
+ 1f8:	05b633f6 	tbl	z22.s, {z31.s}, z22.s
+ 1fc:	04803f5e 	saddv	d30, p7, z26.s
+ 200:	9e6603c0 	fmov	x0, d30
+ 204:	65809adf 	fadd	z31.s, p6/m, z31.s, z22.s
+ 208:	05b733f7 	tbl	z23.s, {z31.s}, z23.s
+ 20c:	65809aff 	fadd	z31.s, p6/m, z31.s, z23.s
+ 210:	6b000100 	subs	w0, w8, w0
+ 214:	54000ae4 	b.mi	370 <op_pvq_search_sve256+0x370>  // b.first
+ 218:	2a0003e8 	mov	w8, w0
+ 21c:	11000ca0 	add	w0, w5, #0x3
+ 220:	1e204396 	fmov	s22, s28
+ 224:	1e2043e0 	fmov	s0, s31
+ 228:	6b08001f 	cmp	w0, w8
+ 22c:	54000c0b 	b.lt	3ac <op_pvq_search_sve256+0x3ac>  // b.tstop
+ 230:	34000808 	cbz	w8, 330 <op_pvq_search_sve256+0x330>
+ 234:	52800006 	mov	w6, #0x0                   	// #0
+ 238:	1e2e1011 	fmov	s17, #1.000000000000000000e+00
+ 23c:	05a038b2 	mov	z18.s, w5
+ 240:	1e201013 	fmov	s19, #2.000000000000000000e+00
+ 244:	25b9ce17 	fmov	z23.s, #1.000000000000000000e+00
+ 248:	2518e3e6 	ptrue	p6.b
+ 24c:	05c003d4 	mov	z20.s, #0x7fffffff
+ 250:	2538c015 	mov	z21.b, #0
+ 254:	2598e085 	ptrue	p5.s, vl4
+ 258:	d503201f 	nop
+ 25c:	d503201f 	nop
+ 260:	d2800000 	mov	x0, #0x0                   	// #0
+ 264:	1e312800 	fadd	s0, s0, s17
+ 268:	052422d8 	mov	z24.s, s22
+ 26c:	05242019 	mov	z25.s, s0
+ 270:	04a1401a 	index	z26.s, #0, #1
+ 274:	2538c01c 	mov	z28.b, #0
+ 278:	25b8c01b 	mov	z27.s, #0
+ 27c:	d503201f 	nop
+ 280:	25a50407 	whilelt	p7.s, w0, w5
+ 284:	a5405c7d 	ld1w	{z29.s}, p7/z, [x3, x0, lsl #2]
+ 288:	a5405c9f 	ld1w	{z31.s}, p7/z, [x4, x0, lsl #2]
+ 28c:	91002000 	add	x0, x0, #0x8
+ 290:	05b7dfbe 	sel	z30.s, p7, z29.s, z23.s
+ 294:	65809f1f 	fadd	z31.s, p7/m, z31.s, z24.s
+ 298:	65809f3e 	fadd	z30.s, p7/m, z30.s, z25.s
+ 29c:	658f33dd 	frsqrte	z29.s, z30.s
+ 2a0:	659d0bde 	fmul	z30.s, z30.s, z29.s
+ 2a4:	659d1fde 	frsqrts	z30.s, z30.s, z29.s
+ 2a8:	659e0bbd 	fmul	z29.s, z29.s, z30.s
+ 2ac:	65829fbf 	fmul	z31.s, p7/m, z31.s, z29.s
+ 2b0:	659b5ff7 	fcmgt	p7.s, p7/z, z31.s, z27.s
+ 2b4:	05bcdf5c 	mov	z28.s, p7/m, z26.s
+ 2b8:	05bbdffb 	mov	z27.s, p7/m, z31.s
+ 2bc:	25a0c11a 	add	z26.s, z26.s, #8
+ 2c0:	6b0000bf 	cmp	w5, w0
+ 2c4:	54fffdec 	b.gt	280 <op_pvq_search_sve256+0x280>
+ 2c8:	65863b7f 	fmaxv	s31, p6, z27.s
+ 2cc:	052423ff 	mov	z31.s, s31
+ 2d0:	659f7b6f 	fcmeq	p15.s, p6/z, z27.s, z31.s
+ 2d4:	05b4ff9c 	sel	z28.s, p15, z28.s, z20.s
+ 2d8:	0420bf9f 	movprfx	z31, z28
+ 2dc:	0522039f 	ext	z31.b, z31.b, z28.b, #16
+ 2e0:	048a1bfc 	smin	z28.s, p6/m, z28.s, z31.s
+ 2e4:	249c9a5f 	cmpgt	p15.s, p6/z, z18.s, z28.s
+ 2e8:	05b5ff9c 	sel	z28.s, p15, z28.s, z21.s
+ 2ec:	0488379f 	smaxv	s31, p5, z28.s
+ 2f0:	1e2603e0 	fmov	w0, s31
+ 2f4:	6b0000bf 	cmp	w5, w0
+ 2f8:	5400084d 	b.le	400 <op_pvq_search_sve256+0x400>
+ 2fc:	937e7c01 	sbfiz	x1, x0, #2, #32
+ 300:	bc60d89e 	ldr	s30, [x4, w0, sxtw #2]
+ 304:	110004c6 	add	w6, w6, #0x1
+ 308:	bc61687f 	ldr	s31, [x3, x1]
+ 30c:	1e3e2ad6 	fadd	s22, s22, s30
+ 310:	b86168e0 	ldr	w0, [x7, x1]
+ 314:	1e332bfe 	fadd	s30, s31, s19
+ 318:	11000400 	add	w0, w0, #0x1
+ 31c:	b82168e0 	str	w0, [x7, x1]
+ 320:	1e202be0 	fadd	s0, s31, s0
+ 324:	bc21687e 	str	s30, [x3, x1]
+ 328:	6b06011f 	cmp	w8, w6
+ 32c:	54fff9a1 	b.ne	260 <op_pvq_search_sve256+0x260>  // b.any
+ 330:	d2800000 	mov	x0, #0x0                   	// #0
+ 334:	d503201f 	nop
+ 338:	d503201f 	nop
+ 33c:	d503201f 	nop
+ 340:	25a50407 	whilelt	p7.s, w0, w5
+ 344:	a5405cfe 	ld1w	{z30.s}, p7/z, [x7, x0, lsl #2]
+ 348:	a5405c5d 	ld1w	{z29.s}, p7/z, [x2, x0, lsl #2]
+ 34c:	0420bfdf 	movprfx	z31, z30
+ 350:	0497bfdf 	neg	z31.s, p7/m, z30.s
+ 354:	25809fbf 	cmpne	p15.s, p7/z, z29.s, #0
+ 358:	05beffff 	sel	z31.s, p15, z31.s, z30.s
+ 35c:	e5405cff 	st1w	{z31.s}, p7, [x7, x0, lsl #2]
+ 360:	91002000 	add	x0, x0, #0x8
+ 364:	6b0000bf 	cmp	w5, w0
+ 368:	54fffecc 	b.gt	340 <op_pvq_search_sve256+0x340>
+ 36c:	17ffff32 	b	34 <op_pvq_search_sve256+0x34>
+ 370:	d2800000 	mov	x0, #0x0                   	// #0
+ 374:	2538c01f 	mov	z31.b, #0
+ 378:	25b8c01e 	mov	z30.s, #0
+ 37c:	d503201f 	nop
+ 380:	25a50407 	whilelt	p7.s, w0, w5
+ 384:	e5405cff 	st1w	{z31.s}, p7, [x7, x0, lsl #2]
+ 388:	e5405c7e 	st1w	{z30.s}, p7, [x3, x0, lsl #2]
+ 38c:	91002000 	add	x0, x0, #0x8
+ 390:	6b0000bf 	cmp	w5, w0
+ 394:	54ffff6c 	b.gt	380 <op_pvq_search_sve256+0x380>
+ 398:	0f000400 	movi	v0.2s, #0x0
+ 39c:	11000ca0 	add	w0, w5, #0x3
+ 3a0:	1e204016 	fmov	s22, s0
+ 3a4:	6b08001f 	cmp	w0, w8
+ 3a8:	54fff44a 	b.ge	230 <op_pvq_search_sve256+0x230>  // b.tcont
+ 3ac:	1e22011f 	scvtf	s31, w8
+ 3b0:	bd40007e 	ldr	s30, [x3]
+ 3b4:	b94000e0 	ldr	w0, [x7]
+ 3b8:	0b080000 	add	w0, w0, w8
+ 3bc:	b90000e0 	str	w0, [x7]
+ 3c0:	1f1f03e0 	fmadd	s0, s31, s31, s0
+ 3c4:	1f1f03c0 	fmadd	s0, s30, s31, s0
+ 3c8:	17ffffda 	b	330 <op_pvq_search_sve256+0x330>
+ 3cc:	52a85000 	mov	w0, #0x42800000            	// #1115684864
+ 3d0:	1e27001e 	fmov	s30, w0
+ 3d4:	1e3e23f0 	fcmpe	s31, s30
+ 3d8:	54000044 	b.mi	3e0 <op_pvq_search_sve256+0x3e0>  // b.first
+ 3dc:	17ffff52 	b	124 <op_pvq_search_sve256+0x124>
+ 3e0:	052423ff 	mov	z31.s, s31
+ 3e4:	17ffff5b 	b	150 <op_pvq_search_sve256+0x150>
+ 3e8:	90000001 	adrp	x1, 0 <op_pvq_search_sve256>
+ 3ec:	90000000 	adrp	x0, 0 <op_pvq_search_sve256>
+ 3f0:	91000021 	add	x1, x1, #0x0
+ 3f4:	91000000 	add	x0, x0, #0x0
+ 3f8:	52800d62 	mov	w2, #0x6b                  	// #107
+ 3fc:	94000000 	bl	0 <celt_fatal>
+ 400:	90000001 	adrp	x1, 0 <op_pvq_search_sve256>
+ 404:	90000000 	adrp	x0, 0 <op_pvq_search_sve256>
+ 408:	91000021 	add	x1, x1, #0x0
+ 40c:	91000000 	add	x0, x0, #0x0
+ 410:	52801da2 	mov	w2, #0xed                  	// #237
+ 414:	94000000 	bl	0 <celt_fatal>
+ 418:	94000000 	bl	0 <__stack_chk_fail>

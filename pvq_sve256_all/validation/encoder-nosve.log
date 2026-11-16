@@ -1,0 +1,1 @@
+PASS: 300 paired CELT frames mono/stereo 2.5/10/20ms; packets, PCM, final ranges exactly match NEON; HWCAP_SVE=0 VL=0 bytes entries=0 actual256=0

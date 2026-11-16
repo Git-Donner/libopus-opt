@@ -1,0 +1,260 @@
+diff --git a/celt/arm/vq_sve256.c b/celt/arm/vq_sve256.c
+--- a/celt/arm/vq_sve256.c
++++ b/celt/arm/vq_sve256.c
+@@ -26,45 +26,54 @@
+    SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ */
+ 
+-/* Floating-point PVQ search for AArch64 SVE with a 256-bit current VL.
+-   Projection and sign handling retain the existing NEON arithmetic. The
+-   greedy scan evaluates eight candidates per iteration, then reconstructs
+-   the NEON four-stream tie policy. Build with scalable SVE vector length:
+-   the entry guard must remain valid when another thread uses another VL. */
++/* Floating-point PVQ search using SVE throughout the vector operations.
++   The current VL must be 256 bits. Eight-element I/O and projection preserve
++   the original four logical accumulation streams and greedy tie policy.
++   Build with scalable SVE vector length so the runtime VL guard remains. */
+ #ifdef HAVE_CONFIG_H
+ #include "config.h"
+ #endif
+ 
+ #ifndef FIXED_POINT
+-#include <arm_neon.h>
+ #include <arm_sve.h>
+ #include <limits.h>
+ #include "stack_alloc.h"
+ #include "mathops.h"
+ #include "vq.h"
+ 
+-/* Keep SSE's (lane0+lane2)+(lane1+lane3) reduction order. */
+-static OPUS_INLINE float pvq_sum_f32(float32x4_t v)
+-{
+-   v = vaddq_f32(v, vextq_f32(v, v, 2));
+-   v = vaddq_f32(v, vrev64q_f32(v));
+-   return vgetq_lane_f32(v, 0);
+-}
+-
+-static OPUS_INLINE opus_int32 pvq_sum_s32(int32x4_t v)
+-{
+-   v = vaddq_s32(v, vextq_s32(v, v, 2));
+-   v = vaddq_s32(v, vrev64q_s32(v));
+-   return vgetq_lane_s32(v, 0);
+-}
+-
+-/* ARM's raw estimate has less precision than SSE RCPPS/RSQRTPS.
+-   One Newton step gives sufficient precision for the float search without
+-   requiring AArch64-only division/sqrt instructions or FMA. */
+-static OPUS_INLINE float32x4_t pvq_rcp_f32(float32x4_t x)
+-{
+-   float32x4_t r = vrecpeq_f32(x);
+-   return vmulq_f32(r, vrecpsq_f32(x, r));
++/* Keep the NEON/SSE (lane0+lane2)+(lane1+lane3) reduction order.
++   Only the first four logical accumulators participate. A generic ADDV
++   would not preserve this floating-point evaluation order. */
++static OPUS_INLINE float pvq_sum4_f32(svfloat32_t v)
++{
++   svbool_t four = svwhilelt_b32_s32(0, 4);
++   svuint32_t lanes = svindex_u32(0, 1);
++   v = svadd_f32_x(four, v, svtbl_f32(v, sveor_n_u32_x(svptrue_b32(), lanes, 2)));
++   v = svadd_f32_x(four, v, svtbl_f32(v, sveor_n_u32_x(svptrue_b32(), lanes, 1)));
++   return svlastb_f32(svwhilelt_b32_s32(0, 1), v);
++}
++
++static OPUS_INLINE svfloat32_t pvq_rcp_sve(svfloat32_t x)
++{
++   svfloat32_t r = svrecpe_f32(x);
++   return svmul_f32_x(svptrue_b32(), r, svrecps_f32(x, r));
++}
++
++/* GCC's normal -O3 contracts NEON vadd(vmul) into FMLA, whereas separate
++   SVE ACLE intrinsics do not contract. Use explicit MLA to retain that
++   normal-build behavior. For a non-contracted NEON reference (for example,
++   -ffp-contract=off or an unoptimized debug build), define
++   OPUS_PVQ_SVE_NO_FMA to request the same two rounding steps.
++   This switch affects only projection accumulation, not ISA dispatch. */
++static OPUS_INLINE svfloat32_t pvq_accumulate4(svfloat32_t acc,
++                                             svfloat32_t x, svfloat32_t y)
++{
++   svbool_t four = svwhilelt_b32_s32(0, 4);
++#ifdef OPUS_PVQ_SVE_NO_FMA
++   return svadd_f32_m(four, acc, svmul_f32_x(four, x, y));
++#else
++   return svmla_f32_m(four, acc, x, y);
++#endif
+ }
+ 
+ static OPUS_INLINE svfloat32_t pvq_rsqrt_sve(svfloat32_t x)
+@@ -79,7 +88,8 @@
+ {
+    int i, j, pulsesLeft;
+    float xy, yy;
+-   float32x4_t sums;
++   svfloat32_t sums;
++   svbool_t all, four;
+    VARDECL(celt_norm, y);
+    VARDECL(celt_norm, X);
+    VARDECL(opus_uint32, signy);
+@@ -96,71 +106,82 @@
+    }
+    celt_assert(N > 1);
+    celt_assert(K >= 0);
+-   ALLOC(y, N+3, celt_norm);
+-   ALLOC(X, N+3, celt_norm);
+-   ALLOC(signy, N+3, opus_uint32);
+-
+-   /* Only local arrays are padded: neither _X nor iy needs extra elements. */
+-   OPUS_COPY(X, _X, N);
+-   X[N] = X[N+1] = X[N+2] = 0;
+-   OPUS_CLEAR(iy, N);
+-   sums = vdupq_n_f32(0);
+-   for (j=0;j<N;j+=4)
+-   {
+-      float32x4_t x4 = vld1q_f32(X+j);
+-      /* Use x<0, not the sign bit: -0 must be treated as in the SSE code. */
+-      vst1q_u32(signy+j, vcltq_f32(x4, vdupq_n_f32(0)));
+-      x4 = vabsq_f32(x4);
+-      sums = vaddq_f32(sums, x4);
+-      vst1q_f32(X+j, x4);
+-      vst1q_f32(y+j, vdupq_n_f32(0));
++   all = svptrue_b32();
++   four = svwhilelt_b32_s32(0, 4);
++   ALLOC(y, N, celt_norm);
++   ALLOC(X, N, celt_norm);
++   ALLOC(signy, N, opus_uint32);
++
++   sums = svdup_n_f32(0);
++   for (j=0;j<N;j+=8)
++   {
++      svbool_t active = svwhilelt_b32_s32(j, N);
++      svfloat32_t x8 = svld1_f32(active, _X+j);
++      svbool_t negative = svcmplt_n_f32(active, x8, 0);
++      /* x<0, not the sign bit: negative zero is nonnegative. */
++      svst1_u32(active, signy+j, svsel_u32(negative,
++                svdup_n_u32(0xffffffffU), svdup_n_u32(0)));
++      x8 = svabs_f32_z(active, x8);
++      /* Two ORDERED updates reproduce the original four-lane streams.
++         Inactive input lanes are explicitly zero, including a short tail. */
++      sums = svadd_f32_m(four, sums, x8);
++      sums = svadd_f32_m(four, sums, svext_f32(x8, x8, 4));
++      svst1_f32(active, X+j, x8);
++      svst1_f32(active, y+j, svdup_n_f32(0));
++      svst1_s32(active, iy+j, svdup_n_s32(0));
+    }
+    xy = yy = 0;
+    pulsesLeft = K;
+ 
+    if (K > (N>>1))
+    {
+-      float sum = pvq_sum_f32(sums);
+-      float32x4_t rcp4, xy4, yy4;
+-      int32x4_t pulses_sum = vdupq_n_s32(0);
++      float sum = pvq_sum4_f32(sums);
++      svfloat32_t rcp8, xy4, yy4;
++      svint32_t pulses_sum = svdup_n_s32(0);
+       if (!(sum > EPSILON && sum < 64))
+       {
+-         X[0] = 1.f;
+-         for (j=1;j<N;j++) X[j] = 0;
++         for (j=0;j<N;j+=8)
++         {
++            svbool_t active = svwhilelt_b32_s32(j, N);
++            svfloat32_t unit = svsel_f32(
++                  svcmpeq_n_s32(active, svindex_s32(j, 1), 0),
++                  svdup_n_f32(1), svdup_n_f32(0));
++            svst1_f32(active, X+j, unit);
++         }
+          sum = 1.f;
+       }
+-      rcp4 = vmulq_f32(vdupq_n_f32((float)(K+.8)),
+-                       pvq_rcp_f32(vdupq_n_f32(sum)));
+-      xy4 = yy4 = vdupq_n_f32(0);
+-      for (j=0;j<N;j+=4)
+-      {
+-         float32x4_t x4 = vld1q_f32(X+j);
+-         /* Values are nonnegative, so truncation equals floor. */
+-         int32x4_t iy4 = vcvtq_s32_f32(vmulq_f32(x4, rcp4));
+-         float32x4_t y4 = vcvtq_f32_s32(iy4);
+-         pulses_sum = vaddq_s32(pulses_sum, iy4);
+-         if (j+3 < N)
+-            vst1q_s32(iy+j, iy4);
+-         else
+-         {
+-            opus_int32 tail[4];
+-            int t;
+-            vst1q_s32(tail, iy4);
+-            for (t=0;j+t<N;t++) iy[j+t] = tail[t];
+-         }
+-         xy4 = vaddq_f32(xy4, vmulq_f32(x4, y4));
+-         yy4 = vaddq_f32(yy4, vmulq_f32(y4, y4));
+-         vst1q_f32(y+j, vaddq_f32(y4, y4));
+-      }
+-      pulsesLeft -= pvq_sum_s32(pulses_sum);
+-      xy = pvq_sum_f32(xy4);
+-      yy = pvq_sum_f32(yy4);
++      rcp8 = svmul_f32_x(all, svdup_n_f32((float)(K+.8)),
++                        pvq_rcp_sve(svdup_n_f32(sum)));
++      xy4 = yy4 = svdup_n_f32(0);
++      for (j=0;j<N;j+=8)
++      {
++         svbool_t active = svwhilelt_b32_s32(j, N);
++         svfloat32_t x8 = svld1_f32(active, X+j);
++         /* FCVTZS truncates; positive values therefore give floor.
++            Zero inactive conversion lanes before the split accumulation. */
++         svint32_t iy8 = svcvt_s32_f32_z(active, svmul_f32_x(active, x8, rcp8));
++         svfloat32_t y8 = svcvt_f32_s32_z(active, iy8);
++         pulses_sum = svadd_s32_x(all, pulses_sum, iy8);
++         svst1_s32(active, iy+j, iy8);
++         xy4 = pvq_accumulate4(xy4, x8, y8);
++         xy4 = pvq_accumulate4(xy4, svext_f32(x8, x8, 4), svext_f32(y8, y8, 4));
++         yy4 = pvq_accumulate4(yy4, y8, y8);
++         yy4 = pvq_accumulate4(yy4, svext_f32(y8, y8, 4), svext_f32(y8, y8, 4));
++         svst1_f32(active, y+j, svadd_f32_x(active, y8, y8));
++      }
++      pulsesLeft -= (opus_int32)svaddv_s32(all, pulses_sum);
++      xy = pvq_sum4_f32(xy4);
++      yy = pvq_sum4_f32(yy4);
+       /* Defend the pulse budget even for unusually large K or rounding at
+          a projection boundary. Normal CELT inputs should not enter here. */
+       if (pulsesLeft < 0)
+       {
+-         OPUS_CLEAR(iy, N);
+-         for (j=0;j<N+3;j++) y[j] = 0;
++         for (j=0;j<N;j+=8)
++         {
++            svbool_t active = svwhilelt_b32_s32(j, N);
++            svst1_s32(active, iy+j, svdup_n_s32(0));
++            svst1_f32(active, y+j, svdup_n_f32(0));
++         }
+          xy = yy = 0;
+          pulsesLeft = K;
+       }
+@@ -177,7 +198,6 @@
+ 
+    for (i=0;i<pulsesLeft;i++)
+    {
+-      svbool_t all = svptrue_b32();
+       svbool_t first_four = svwhilelt_b32_s32(0, 4);
+       svfloat32_t best = svdup_n_f32(0);
+       svint32_t pos = svdup_n_s32(0);
+@@ -222,14 +242,13 @@
+       iy[j]++;
+    }
+ 
+-   for (j=0;j+3<N;j+=4)
+-   {
+-      int32x4_t p4 = vld1q_s32(iy+j);
+-      int32x4_t s4 = vreinterpretq_s32_u32(vld1q_u32(signy+j));
+-      vst1q_s32(iy+j, veorq_s32(vaddq_s32(p4, s4), s4));
+-   }
+-   for (;j<N;j++)
+-      if (signy[j]) iy[j] = -iy[j];
++   for (j=0;j<N;j+=8)
++   {
++      svbool_t active = svwhilelt_b32_s32(j, N);
++      svint32_t p8 = svld1_s32(active, iy+j);
++      svbool_t negative = svcmpne_n_u32(active, svld1_u32(active, signy+j), 0);
++      svst1_s32(active, iy+j, svsel_s32(negative, svneg_s32_x(active, p8), p8));
++   }
+    RESTORE_STACK;
+    return yy;
+ }

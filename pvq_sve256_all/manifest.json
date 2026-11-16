@@ -1,0 +1,14 @@
+{
+  "description": "Only the changed SVE256 production source, relative to prior mixed NEON/SVE package",
+  "date": "2026-11-16",
+  "base_package_commit": "4a7e0bf2355088db632cd532e15a18586cc5685f",
+  "changed_code_files": [
+    {
+      "path": "celt/arm/vq_sve256.c",
+      "before_sha256": "27706bb8fdf0dcd9c30cc54ce32cc55250b6505cf38668ca297aeec3dfff49de",
+      "after_sha256": "e698262c2385f93cbbc0b86dc8b6c76314787abdc644d6dd96ff2bed8c367990"
+    }
+  ],
+  "unchanged_neon_sha256": "689522b99cf2aa1a4bdb55137b7e9f9a2447ef3446da78873766ef24c8976565",
+  "acle_sha256": "9e937d1f7e61497c05a2976803891147cae1743c7634297708d644ffc5b993dd"
+}

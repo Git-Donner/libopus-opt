@@ -1,0 +1,3 @@
+checking file celt/arm/vq_sve256.c
+patching file celt/arm/vq_sve256.c
+PASS: incremental patch reconstructs exact delivered file from prior SVE256 implementation.
