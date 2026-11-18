@@ -1,0 +1,40 @@
+{
+  "file": "celt_encode_mixed_48k_mono_22s.pcm",
+  "sample_rate": 48000,
+  "channels": 1,
+  "sample_format": "signed 16-bit little-endian raw PCM",
+  "seed": 42,
+  "signal": "mixed",
+  "frame_size": 960,
+  "frames": 1000,
+  "warmup": 100,
+  "duration_seconds": 22,
+  "samples": 1056000,
+  "bytes": 2112000,
+  "warmup_prefix_bytes": 192000,
+  "sha256": "f6cbf41a41e2fe93c4fbab0e8fa3a653418e7dc83c422f37b54cbf16d6e673eb",
+  "framework_pcm_fnv64": "8019257682192111",
+  "minimum_sample": -16405,
+  "maximum_sample": 16486,
+  "case": {
+    "name": "celt-encode",
+    "mode": "celt",
+    "operation": "encode",
+    "sample_rate": 48000,
+    "channels": 1,
+    "frame_size": 960,
+    "bitrate": 64000,
+    "complexity": 5,
+    "bandwidth": "FULLBAND",
+    "signal": "mixed",
+    "frames": 1000,
+    "warmup": 100
+  },
+  "generation": "Captured actual PCM passed to opus_encode by the existing bench_worker.c, including warmup; export timing is not a performance result.",
+  "demo_notes": [
+    "Set CHANNELS to 1.",
+    "Set complexity=5, VBR=0 and bandwidth=FULLBAND separately if matching encoder parameters.",
+    "The simple demo encodes all 1100 frames; it does not exclude the first 100 frames as warmup."
+  ],
+  "portability": "Use the distributed bytes and SHA256 as reference; do not assume identical regeneration with another libm/compiler."
+}
