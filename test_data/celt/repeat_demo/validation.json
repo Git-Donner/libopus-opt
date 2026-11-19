@@ -1,0 +1,31 @@
+{
+  "platform": "x86_64",
+  "compiler": "gcc (Debian 14.2.0-19) 14.2.0",
+  "source_sha256": "9dd6078088e98081733634592b6ab78d3faad396ccaa4db229bc3b04c255c8f3",
+  "modes": {
+    "float": {
+      "default_equals_one": true,
+      "explicit_three_frames": 3300,
+      "continuous_reference_packets_equal": 3300,
+      "previous_first_pass_packets_equal": 1100,
+      "input_ctl_and_celt_packet_checks": true,
+      "decode_calls": 0,
+      "negative_cases_passed": 15,
+      "long_run_frames": 110000,
+      "long_run_elapsed_s": 6.033,
+      "compiled_with_werror": true
+    },
+    "fixed": {
+      "default_equals_one": true,
+      "explicit_three_frames": 3300,
+      "continuous_reference_packets_equal": 3300,
+      "previous_first_pass_packets_equal": 1100,
+      "input_ctl_and_celt_packet_checks": true,
+      "decode_calls": 0,
+      "negative_cases_passed": 15,
+      "long_run_frames": 110000,
+      "long_run_elapsed_s": 7.036,
+      "compiled_with_werror": true
+    }
+  }
+}

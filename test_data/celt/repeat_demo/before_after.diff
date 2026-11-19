@@ -1,0 +1,98 @@
+--- previous/celt_encode_demo.c
++++ updated/celt_encode_demo.c
+@@ -32,6 +32,7 @@
+ 
+ #include <stdlib.h>
+ #include <errno.h>
++#include <limits.h>
+ #include <string.h>
+ #include <opus.h>
+ #include <stdio.h>
+@@ -44,10 +45,8 @@
+ #define BITRATE 64000
+ #define COMPLEXITY 5
+ #define BANDWIDTH OPUS_BANDWIDTH_FULLBAND
+-#define WARMUP_FRAMES 100
+-#define TEST_FRAMES 1000
+-#define TOTAL_FRAMES (WARMUP_FRAMES + TEST_FRAMES)
+-#define INPUT_SAMPLES (TOTAL_FRAMES*FRAME_SIZE*CHANNELS)
++#define FRAMES_PER_LOOP 1100
++#define INPUT_SAMPLES (FRAMES_PER_LOOP*FRAME_SIZE*CHANNELS)
+ 
+ #define MAX_PACKET_SIZE (3*1276)
+ 
+@@ -61,14 +60,28 @@
+    int nbBytes;
+    OpusEncoder *encoder = NULL;
+    unsigned long encoded_frames = 0;
++   unsigned long loops = 1;
+    int status = EXIT_FAILURE;
+    int err;
+ 
+-   if (argc != 2)
++   if (argc != 2 && argc != 3)
+    {
+-      fprintf(stderr, "usage: %s input.pcm\n", argv[0]);
++      fprintf(stderr, "usage: %s input.pcm [loops]\n", argv[0]);
+       fprintf(stderr, "input: 48000 Hz, mono, signed 16-bit little-endian raw PCM\n");
+       return EXIT_FAILURE;
++   }
++   if (argc == 3)
++   {
++      char *end;
++      errno = 0;
++      loops = strtoul(argv[2], &end, 10);
++      if (argv[2][0]<'0' || argv[2][0]>'9' || *end!='\0' ||
++          errno!=0 || loops==0 || loops>ULONG_MAX/FRAMES_PER_LOOP)
++      {
++         fprintf(stderr, "loops must be an integer from 1 to %lu\n",
++                 ULONG_MAX/FRAMES_PER_LOOP);
++         return EXIT_FAILURE;
++      }
+    }
+ 
+    fin = fopen(argv[1], "rb");
+@@ -82,7 +95,7 @@
+    if (fread(pcm_bytes, 1, sizeof(pcm_bytes), fin) != sizeof(pcm_bytes))
+    {
+       fprintf(stderr, "input is too short or unreadable; need %d bytes (%d frames)\n",
+-              INPUT_SAMPLES*2, TOTAL_FRAMES);
++              INPUT_SAMPLES*2, FRAMES_PER_LOOP);
+       goto cleanup;
+    }
+    for (int i=0;i<INPUT_SAMPLES;i++)
+@@ -112,21 +125,24 @@
+       goto cleanup;
+    }
+ 
+-   /* One continuous encoder state: 100 warmup frames, then 1000 test frames.
++   /* Repeat the same PCM with one continuous encoder state; no warmup.
+       The hot loop does no I/O, conversion, timing, hashing or decoding. */
+-   for (encoded_frames=0;encoded_frames<TOTAL_FRAMES;encoded_frames++)
++   for (unsigned long loop=0;loop<loops;loop++)
+    {
+-      /* Encode the frame. */
+-      nbBytes = opus_encode(encoder, in + encoded_frames*FRAME_SIZE*CHANNELS,
+-                            FRAME_SIZE, cbits, MAX_PACKET_SIZE);
+-      if (nbBytes<0)
++      for (int frame=0;frame<FRAMES_PER_LOOP;frame++)
+       {
+-         fprintf(stderr, "encode failed: %s\n", opus_strerror(nbBytes));
+-         goto cleanup;
++         nbBytes = opus_encode(encoder, in + frame*FRAME_SIZE*CHANNELS,
++                              FRAME_SIZE, cbits, MAX_PACKET_SIZE);
++         if (nbBytes<0)
++         {
++            fprintf(stderr, "encode failed: %s\n", opus_strerror(nbBytes));
++            goto cleanup;
++         }
+       }
+    }
+-   fprintf(stderr, "Encoded %lu CELT frames (%d warmup + %d test).\n",
+-           encoded_frames, WARMUP_FRAMES, TEST_FRAMES);
++   encoded_frames = loops*FRAMES_PER_LOOP;
++   fprintf(stderr, "Encoded %lu CELT frames (%lu loops x %d frames; no warmup).\n",
++           encoded_frames, loops, FRAMES_PER_LOOP);
+    status = EXIT_SUCCESS;
+ 
+ cleanup:
