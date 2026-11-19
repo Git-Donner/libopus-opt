@@ -1,0 +1,141 @@
+--- before/celt_encode_demo.c
++++ after/celt_encode_demo.c
+@@ -39,17 +39,24 @@
+ /*The frame size is hardcoded for this sample code but it doesn't have to be*/
+ #define FRAME_SIZE 960
+ #define SAMPLE_RATE 48000
+-#define CHANNELS 2
+-#define APPLICATION OPUS_APPLICATION_RESTRICTED_LOWDELAY
++#define CHANNELS 1
++#define APPLICATION OPUS_APPLICATION_RESTRICTED_CELT
+ #define BITRATE 64000
++#define COMPLEXITY 5
++#define BANDWIDTH OPUS_BANDWIDTH_FULLBAND
++#define WARMUP_FRAMES 100
++#define TEST_FRAMES 1000
++#define TOTAL_FRAMES (WARMUP_FRAMES + TEST_FRAMES)
++#define INPUT_SAMPLES (TOTAL_FRAMES*FRAME_SIZE*CHANNELS)
+ 
+ #define MAX_PACKET_SIZE (3*1276)
+ 
+ int main(int argc, char **argv)
+ {
+    FILE *fin = NULL;
+-   opus_int16 in[FRAME_SIZE*CHANNELS];
+-   unsigned char pcm_bytes[FRAME_SIZE*CHANNELS*2];
++   /* Fixed-size static buffers avoid a large stack allocation. */
++   static opus_int16 in[INPUT_SAMPLES];
++   static unsigned char pcm_bytes[INPUT_SAMPLES*2];
+    unsigned char cbits[MAX_PACKET_SIZE];
+    int nbBytes;
+    OpusEncoder *encoder = NULL;
+@@ -59,8 +66,8 @@
+ 
+    if (argc != 2)
+    {
+-      fprintf(stderr, "usage: trivial_example input.pcm\n");
+-      fprintf(stderr, "input: 48000 Hz, stereo, signed 16-bit little-endian raw PCM\n");
++      fprintf(stderr, "usage: %s input.pcm\n", argv[0]);
++      fprintf(stderr, "input: 48000 Hz, mono, signed 16-bit little-endian raw PCM\n");
+       return EXIT_FAILURE;
+    }
+ 
+@@ -71,6 +78,19 @@
+       goto cleanup;
+    }
+ 
++   /* Read and convert the entire case before entering the encoding loop. */
++   if (fread(pcm_bytes, 1, sizeof(pcm_bytes), fin) != sizeof(pcm_bytes))
++   {
++      fprintf(stderr, "input is too short or unreadable; need %d bytes (%d frames)\n",
++              INPUT_SAMPLES*2, TOTAL_FRAMES);
++      goto cleanup;
++   }
++   for (int i=0;i<INPUT_SAMPLES;i++)
++   {
++      int sample = pcm_bytes[2*i+1]<<8 | pcm_bytes[2*i];
++      in[i] = (opus_int16)((sample ^ 0x8000) - 0x8000);
++   }
++
+    /*Create a new encoder state */
+    encoder = opus_encoder_create(SAMPLE_RATE, CHANNELS, APPLICATION, &err);
+    if (encoder==NULL || err<0)
+@@ -78,61 +98,35 @@
+       fprintf(stderr, "failed to create an encoder: %s\n", opus_strerror(err));
+       goto cleanup;
+    }
+-   /* Set the desired bit-rate. You can also set other parameters if needed.
+-      The Opus library is designed to have good defaults, so only set
+-      parameters you know you need. Doing otherwise is likely to result
+-      in worse quality. */
+-   err = opus_encoder_ctl(encoder, OPUS_SET_BITRATE(BITRATE));
+-   if (err<0)
++   /* Match the celt-encode case. These checks run once, before encoding. */
++   if ((err = opus_encoder_ctl(encoder, OPUS_SET_BITRATE(BITRATE))) != OPUS_OK ||
++       (err = opus_encoder_ctl(encoder, OPUS_SET_COMPLEXITY(COMPLEXITY))) != OPUS_OK ||
++       (err = opus_encoder_ctl(encoder, OPUS_SET_FORCE_CHANNELS(CHANNELS))) != OPUS_OK ||
++       (err = opus_encoder_ctl(encoder, OPUS_SET_BANDWIDTH(BANDWIDTH))) != OPUS_OK ||
++       (err = opus_encoder_ctl(encoder, OPUS_SET_MAX_BANDWIDTH(BANDWIDTH))) != OPUS_OK ||
++       (err = opus_encoder_ctl(encoder, OPUS_SET_VBR(0))) != OPUS_OK ||
++       (err = opus_encoder_ctl(encoder, OPUS_SET_DTX(0))) != OPUS_OK ||
++       (err = opus_encoder_ctl(encoder, OPUS_SET_INBAND_FEC(0))) != OPUS_OK)
+    {
+-      fprintf(stderr, "failed to set bitrate: %s\n", opus_strerror(err));
++      fprintf(stderr, "failed to configure encoder: %s\n", opus_strerror(err));
+       goto cleanup;
+    }
+ 
+-   while (1)
++   /* One continuous encoder state: 100 warmup frames, then 1000 test frames.
++      The hot loop does no I/O, conversion, timing, hashing or decoding. */
++   for (encoded_frames=0;encoded_frames<TOTAL_FRAMES;encoded_frames++)
+    {
+-      int i;
+-      size_t samples;
+-
+-      /* Read a 16 bits/sample audio frame. */
+-      samples = fread(pcm_bytes, 2*CHANNELS, FRAME_SIZE, fin);
+-
+-      /* For simplicity, only read whole frames. In a real application,
+-       * we'd pad the final partial frame with zeroes, record the exact
+-       * duration, and trim the decoded audio to match.
+-       */
+-      if (samples != FRAME_SIZE)
+-      {
+-         break;
+-      }
+-
+-      /* Convert from little-endian ordering. */
+-      for (i=0;i<CHANNELS*FRAME_SIZE;i++)
+-      {
+-         int sample = pcm_bytes[2*i+1]<<8 | pcm_bytes[2*i];
+-         in[i] = (opus_int16)((sample ^ 0x8000) - 0x8000);
+-      }
+-
+       /* Encode the frame. */
+-      nbBytes = opus_encode(encoder, in, FRAME_SIZE, cbits, MAX_PACKET_SIZE);
++      nbBytes = opus_encode(encoder, in + encoded_frames*FRAME_SIZE*CHANNELS,
++                            FRAME_SIZE, cbits, MAX_PACKET_SIZE);
+       if (nbBytes<0)
+       {
+          fprintf(stderr, "encode failed: %s\n", opus_strerror(nbBytes));
+          goto cleanup;
+       }
+-      encoded_frames++;
+    }
+-   if (ferror(fin))
+-   {
+-      fprintf(stderr, "failed to read input file\n");
+-      goto cleanup;
+-   }
+-   if (encoded_frames==0)
+-   {
+-      fprintf(stderr, "input contains no complete 20-ms frame\n");
+-      goto cleanup;
+-   }
+-   fprintf(stderr, "Encoded %lu CELT frames.\n", encoded_frames);
++   fprintf(stderr, "Encoded %lu CELT frames (%d warmup + %d test).\n",
++           encoded_frames, WARMUP_FRAMES, TEST_FRAMES);
+    status = EXIT_SUCCESS;
+ 
+ cleanup:

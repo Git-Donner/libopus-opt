@@ -1,0 +1,28 @@
+{
+  "platform": "x86_64",
+  "compiler": "gcc (Debian 14.2.0-19) 14.2.0",
+  "modes": {
+    "float": {
+      "compiled_with_werror": true,
+      "normal_output": "Encoded 1100 CELT frames (100 warmup + 1000 test).",
+      "original_worker_packet_payload_length_range_equal": 1100,
+      "celt_packets": 1100,
+      "decode_calls": 0,
+      "all_ctl_values_and_pcm_checked": true,
+      "extra_input_capped": true,
+      "negative_tests_passed": 6
+    },
+    "fixed": {
+      "compiled_with_werror": true,
+      "normal_output": "Encoded 1100 CELT frames (100 warmup + 1000 test).",
+      "original_worker_packet_payload_length_range_equal": 1100,
+      "celt_packets": 1100,
+      "decode_calls": 0,
+      "all_ctl_values_and_pcm_checked": true,
+      "extra_input_capped": true,
+      "negative_tests_passed": 6
+    }
+  },
+  "source_sha256": "aa2da7c1b7fead3f5bb7112284e339cca66b1c812b8b4952f3c04464058e6c53",
+  "pcm_sha256": "f6cbf41a41e2fe93c4fbab0e8fa3a653418e7dc83c422f37b54cbf16d6e673eb"
+}
